@@ -1,2 +1,3 @@
 version=3
-http://impredicative.com/ur/urweb-(.+).tgz
+opts=dversionmangle=s/\+dfsg-\d+$// \
+  http://impredicative.com/ur/urweb-(.+).tgz
