@@ -1,0 +1,100 @@
+Source: urweb
+Section: devel
+Priority: extra
+Maintainer: Benjamin Barenblat <bbaren@mit.edu>
+Build-Depends:
+ debhelper (>= 9),
+ dh-autoreconf,
+ dh-exec,
+ libmysqlclient-dev,
+ libpq-dev,
+ libsqlite3-dev,
+ libssl-dev,
+ mlton
+Standards-Version: 3.9.6
+Homepage: http://impredicative.com/ur/
+
+Package: urweb
+Architecture: any
+Depends:
+ liburweb0,
+ liburweb-cgi0,
+ liburweb-fastcgi0,
+ liburweb-http0,
+ liburweb-static0,
+ ${shlibs:Depends},
+ ${misc:Depends}
+Description: purely functional language for web programming
+ Ur is a purely functional, statically-typed, strict programming language in
+ the tradition of ML and Haskell; however, it features a significantly richer
+ type system.  Ur/Web is Ur plus a special standard library and associated
+ rules for parsing and optimization.  Ur/Web supports construction of dynamic
+ web applications backed by SQL databases.
+ .
+ This package provides the urweb compiler and development libraries; you do not
+ need to install it to run applications written in Ur/Web.
+
+Package: liburweb0
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Suggests:
+ liburweb-cgi0,
+ liburweb-fastcgi0,
+ liburweb-http0,
+ liburweb-static0
+Description: urweb runtime system
+ Ur is a purely functional, statically-typed, strict programming language in
+ the tradition of ML and Haskell; however, it features a significantly richer
+ type system.  Ur/Web is Ur plus a special standard library and associated
+ rules for parsing and optimization.  Ur/Web supports construction of dynamic
+ web applications backed by SQL databases.
+ .
+ This package provides the runtime library for urweb.
+
+Package: liburweb-cgi0
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: urweb CGI backend
+ Ur is a purely functional, statically-typed, strict programming language in
+ the tradition of ML and Haskell; however, it features a significantly richer
+ type system.  Ur/Web is Ur plus a special standard library and associated
+ rules for parsing and optimization.  Ur/Web supports construction of dynamic
+ web applications backed by SQL databases.
+ .
+ This package provides the Ur/Web CGI backend.
+
+Package: liburweb-fastcgi0
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: urweb FastCGI backend
+ Ur is a purely functional, statically-typed, strict programming language in
+ the tradition of ML and Haskell; however, it features a significantly richer
+ type system.  Ur/Web is Ur plus a special standard library and associated
+ rules for parsing and optimization.  Ur/Web supports construction of dynamic
+ web applications backed by SQL databases.
+ .
+ This package provides the Ur/Web FastCGI backend.
+
+Package: liburweb-http0
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: urweb standalone backend
+ Ur is a purely functional, statically-typed, strict programming language in
+ the tradition of ML and Haskell; however, it features a significantly richer
+ type system.  Ur/Web is Ur plus a special standard library and associated
+ rules for parsing and optimization.  Ur/Web supports construction of dynamic
+ web applications backed by SQL databases.
+ .
+ This package provides the Ur/Web standalone backend.
+
+Package: liburweb-static0
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: urweb static backend
+ Ur is a purely functional, statically-typed, strict programming language in
+ the tradition of ML and Haskell; however, it features a significantly richer
+ type system.  Ur/Web is Ur plus a special standard library and associated
+ rules for parsing and optimization.  Ur/Web supports construction of dynamic
+ web applications backed by SQL databases.
+ .
+ This package provides the Ur/Web static-file backend.

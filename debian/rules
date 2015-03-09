@@ -1,0 +1,16 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+# Avoid overlinking and reduce library dependencies.
+export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
+
+%:
+	dh $@ --parallel --with autoreconf
+
+.PHONY: override_dh_auto_configure
+override_dh_auto_configure:
+	SRCLIB=/usr/share/urweb dh_auto_configure
+
+.PHONY: override_dh_builddeb
+override_dh_builddeb:
+	dh_builddeb -- -Zxz -z9

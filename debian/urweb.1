@@ -1,0 +1,436 @@
+.TH urweb 1 "February 14, 2015"
+.\" urweb.1 -- man page for urweb
+ \" Copyright (C) 2013, 2015 Benjamin Barenblat <bbaren@mit.edu>
+ \"
+ \" This program is free software: you can redistribute it and/or modify it
+ \" under the terms of the GNU General Public License as published by the Free
+ \" Software Foundation, either version 3 of the License, or (at your option)
+ \" any later version.
+ \"
+ \" This program is distributed in the hope that it will be useful, but WITHOUT
+ \" ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ \" FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+ \" more details.
+ \"
+ \" You should have received a copy of the GNU General Public License along with
+ \" this program.  If not, see <http://www.gnu.org/licenses/>.
+.SH NAME
+\fBurweb\fP \- compiler for the Ur/Web programming language
+.SH SYNOPSIS
+\fBurweb\fP [\fIoption\fP|\fIproject-name\fP]...
+.br
+\fBurweb daemon\fP [\fBstart\fP|\fBstop\fP]
+.SH DESCRIPTION
+.PP
+This manual page briefly documents the \fBurweb\fP compiler.  Extensive
+documentation is available in the Ur/Web reference manual.
+
+\fBurweb\fP is an optimizing compiler for Ur/Web, a functional, pure, statically
+typed, strictly evaluated programming language designed for constructing dynamic
+Web applications backed by SQL databases.  \fBurweb\fP produces very efficient
+object code that does not use garbage collection; compiled programs will often
+be even more efficient than what most programmers would bother to write in C.
+
+The first invocation described compiles an Ur/Web project (see
+\fBCOMPILATION\fP), while the second invocation controls the type inference
+daemon (see \fBTYPE INFERENCE DAEMON\fP).  For simple projects, only
+familiarity with the first invocation is required.
+
+.SH COMPILATION
+\fBurweb\fP is a whole-program compiler (i.e., incremental compilation is not
+supported).  Thus, it operates at project granularity, and it is run from the
+command line with a collection of options and a project name.  The simplest
+case is to run \fBurweb foo\fP, where the file \fBfoo.ur\fP contains a valid
+Ur/Web program, in which case \fBurweb\fP will compile the program to the file
+\fBfoo.exe\fP.  (Despite the extension of the generated files, \fBurweb\fP does
+not necessarily produce COFF executables; rather, it produces the default
+object format of the default C compiler.)
+
+Larger programs, spanning many files, may be compiled by specifying an
+\fB.urp\fP (i.e., an Ur/Web project) file.  The syntax of an \fB.urp\fP file is
+relatively simple; see section 3.1 of the Ur/Web reference manual for details.
+
+With no arguments, \fBurweb\fP prints the version number and exits.
+
+.SH "Compiler options"
+.TP
+\fB\-ccompiler\fP \fIprogram\fP
+Sets the executable name corresponding to the C compiler.  \fBurweb\fP uses
+\fBgcc\fP by default, but \fBclang\fP should also work.
+
+.TP
+\fB\-db\fP \fIname\fP=\fIvalue\fP,...
+Sets database information using the format expected by Postgres's
+\fIPQconnectdb\fP.  If the database backend is MySQL or SQLite, \fBurweb\fP
+will parse the information string to set connection parameters appropriately.
+For MySQL, the only relevant parameters are \fIhost\fP, \fIhostaddr\fP,
+\fIport\fP, \fIdbname\fP, \fIuser\fP, and \fIpassword\fP; for SQLite, the only
+relevant parameter is \fIdbname\fP, which is interpreted as the file system
+path to the database file.  All unrecognized parameters are silently ignored.
+
+.TP
+\fB\-dbms\fP (\fBpostgres\fP|\fBmysql\fP|\fBsqlite\fP)
+Sets the database backend.  If requested, \fBurweb\fP will also emit
+initialization code for the selected backend; see the \fB\-sql\fP option.
+
+.TP
+\fB\-debug\fP
+Instructs \fBurweb\fP to emit the generated C code as \fI/tmp/webapp.c\fP.
+Additionally, \fBurweb\fP will print the command-line options it passes to the
+C compiler and linker as it executes.
+
+.TP
+\fB\-dumpSource\fP
+Instructs \fBurweb\fP to print a text-based form of the current intermediate
+representation (IR) when compilation fails.  Output will likely be extremely
+long and not very human-readable.
+
+.TP
+\fB\-dumpVerboseSource\fP
+Instructs \fBurweb\fP to print a text-based form of every intermediate
+representation it generates during compilation.  Output will likely be extremely
+long and not very human-readable.
+
+.TP
+\fB\-dumpTypes\fP
+If specified, \fBurweb\fP will print the types of all named values it finds
+during compilation.
+
+.TP
+\fB\-dumpTypesOnError\fP
+Identical to \fB\-dumpTypes\fP, but only prints the types if compilation
+fails.
+
+.TP
+\fB\-explainEmbed\fP
+Enables verbose error messages when \fBurweb\fP is unable to embed server-side
+values in client-side code.
+
+.TP
+\fB\-iflow\fP
+Enables the UrFlow static analysis engine.  See
+\fIhttp://impredicative.com/ur/scdv/\fP for more information.
+
+.TP
+\fB\-limit \fIclass\fP \fInum\fP
+Sets a resource usage limit for generated applications.  The limit \fIclass\fP
+will be set to the non-negative integer \fInum\fP.  The classes are:
+
+.RS
+.IP \fBcleanup\fP
+maximum number of cleanup operations (e.g., entries recording the need to
+deallocate certain temporary objects) that may be active at once per request
+
+.IP \fBclients\fP
+maximum number of clients that can be simultaneously blocked waiting for new
+messages (sent by \fIBasis.send\fP)
+
+.IP \fBdatabase\fP
+maximum size of database file (currently only used by SQLite), in units of
+database pages
+
+.IP \fBdeltas\fP
+maximum number of messages sendable in a single request handler with
+\fIBasis.send\fP
+
+.IP \fBglobals\fP
+maximum number of global variables that FFI libraries may set in a single
+request context
+
+.IP \fBheaders\fP
+maximum size (in bytes) of per-request buffer used to hold HTTP headers for
+generated pages
+
+.IP \fBheap\fP
+maximum size (in bytes) of per-request heap for dynamically allocated data
+
+.IP \fBinputs\fP
+maximum number of top-level form fields per request
+
+.IP \fBmessages\fP
+maximum size (in bytes) of per-request buffer used to hold a single outgoing
+message sent with \fIBasis.send\fP
+
+.IP \fBpage\fP
+maximum size (in bytes) of per-request buffer used to hold HTML content of
+generated pages
+
+.IP \fBscript\fP
+maximum size (in bytes) of per-request buffer used to hold JavaScript content
+of generated pages
+
+.IP \fBsubinputs\fP
+maximum number of form fields per request, excluding top-level fields
+
+.IP \fBtime\fP
+maximum running time of a single page request, in units of approximately 0.1
+seconds
+
+.IP \fBtransactionals\fP
+maximum number of custom transactional actions (e.g., sending an e-mail) that
+may be run in a single page generation
+.RE
+
+.TP
+\fB\-output\fP \fIfilename\fP
+Sets where \fBurweb\fP will store the compiled executable.
+
+.TP
+\fB\-path\fP \fIname\fP \fIvalue\fP
+Defines a new path alias for use in \fB.urp\fP files.  In particular, this
+option specifies that all occurrences of $\fIname\fP in any \fB.urp\fP files
+processed will be replaced with \fIvalue\fP.  You may specify this option more
+than once.
+
+.TP
+\fB\-prefix\fP \fIprefix\fP
+Sets the application prefix.  This controls how Ur/Web functions are bound to
+URIs; in particular, if \fIprefix\fP is \fI/directory/myapp.exe/\fP, then URIs
+of the form \fI//example.com/directory/myapp.exe/Module/function\fP will
+resolve to the function \fIModule.function\fP in Ur/Web.
+
+.TP
+\fB\-protocol\fP (\fBhttp\fP|\fBcgi\fP|\fBfastcgi\fP|\fBstatic\fP)
+Instructs \fBurweb\fP to produce an executable which speaks the specified
+protocol:
+
+.RS
+.IP \fBhttp\fP
+HTTP 1.1.  \fBurweb\fP will generate a standalone server executable.
+
+.IP \fBcgi\fP
+The Common Gateway Interface, the classic protocol that Web servers use to
+generate dynamic content by spawning new processes.  While Ur/Web programs may
+in general use message-passing with the \fIsend\fP and \fIrecv\fP functions,
+that functionality is not yet supported in CGI, since CGI needs a fresh process
+for each request, and message-passing needs to use persistent sockets to
+deliver messages.
+
+Since Ur/Web treats paths in an unusual way, you will need to configure Ur/Web
+specially by setting the \fBprefix\fP directive in your \fB.urp\fP file or
+passing the \fB\-prefix\fP option on the command line.  For example, if you
+deploy a Web application at \fI//example.com/directory/myapp.exe\fP, you
+should specify \fI/directory/myapp.exe/\fP as the application prefix.  See
+section 3.2 of the Ur/Web reference manual for more information.
+
+.IP \fBfastcgi\fP
+The faster, newer protocol inspired by CGI, wherein Web servers can start and
+reuse persistent external processes to generate dynamic content.  Ur/Web
+doesn't implement the whole protocol, but Ur/Web's support has been tested to
+work with both Apache and lighttpd.
+
+Applications which use message-passing, while supported, require special
+configuration.  In particular, if you're using Apache, be sure to specify a
+large \fBidle-timout\fP; if you're using lighttpd, be sure to set
+\fBmax-procs\fP to 1.  The rationale for these configuration changes is
+detailed in section 3.2 of the Ur/Web reference manual.
+
+.IP \fBstatic\fP
+The simplest possible protocol.  \fBurweb\fP will generate an output executable
+which expects a single command-line argument giving the URI of a page to
+generate.  For instance, this argument might be \fI/main\fP, in which case a
+static HTTP response for that page will be written to standard output.
+.RE
+
+.TP
+\fB\-root\fP \fIName\fP \fIpath\fP
+Triggers an alternate module convention for all source files found in directory
+\fIpath\fP or any of its subdirectories.  In particular, any file
+\fIpath\fP/foo.ur will define a module called \fIName.Foo\fP instead of the
+usual \fIFoo\fP.  Any file \fIpath\fP/subdir/foo.ur will define a module called
+\fIName.Subdir.Foo\fP, and so on for arbitrary nesting of subdirectories. You
+may specify this option more than once.
+
+.TP
+\fB\-sigfile\fP \fIpath\fP
+If specified, the compiled application will look at \fIpath\fP for a key to use
+in cryptographic signing.  This is used to prevent cross-site request forgery
+attacks for any form handler that both reads a cookie and creates side effects.
+If the referenced file doesn't exist, the application will create it and read
+its saved data on future invocations.  You can also initialize the file
+manually with any contents at least 16 bytes long; the first 16 bytes will be
+treated as the key.
+
+
+.TP
+\fB\-sql\fP \fIfile\fP
+Requests that \fBurweb\fP generate database initialization code for the
+selected database backend, storing it in \fIfile\fP.  If \fIfile\fP already
+exists, \fBurweb\fP will overwrite it.
+
+Note that the generated instructions will not create the application database;
+you must do that yourself.
+
+.TP
+\fB\-static\fP
+Instructs \fBurweb\fP to statically link the generated executable with the
+Ur/Web runtime system.  Note, however, that the executable will still be
+dynamically linked with any other supporting libraries (e.g., OpenSSL).
+
+.TP
+\fB\-timing\fP
+If specified, \fBurweb\fP will print a timing report at the end of compilation
+showing the number of seconds required for each stage of the compilation
+process.
+
+.TP
+\fB\-unifyMore\fP
+Instructs \fBurweb\fP's type inference engine to make best-effort guesses
+rather than immediately failing when performing type inference.  If
+\fB\-dumpTypes\fP shows unresolved unification variables in positions where you
+would like to see \fBurweb\fP make best-guesses effort instead, specify this
+option.
+
+Correct programs compiled with \fB\-unifyMore\fP will be identical to their
+counterparts compiled without it; however, \fBurweb\fP will likely generate
+many more (and potentially more useful) error messages at a time when asked to
+compile an incorrect program with this flag.
+
+.TP
+\fB\-verbose\fP
+Instructs \fBurweb\fP to announce the stages of the compilation process as it
+performs them.
+
+.SH "Options which inhibit compilation"
+When run with any of these options, \fBurweb\fP will not produce executable
+output.
+
+.TP
+\fB\-css\fP
+Dumps generated CSS properties and classes.  The first output line is a list of
+categories of CSS properties that would be worth setting on the document body.
+The remaining lines are space-separated pairs of CSS class names and categories
+of properties that would be worth setting for that class.  The category codes
+are divided into two varieties.  Codes that reveal properties of a tag or its
+(recursive) children are
+
+.RS
+.IP \fBB\fP
+for block-level elements,
+.IP \fBC\fP
+for table captions,
+.IP \fBD\fP
+for table cells,
+.IP \fBL\fP
+for lists, and
+.IP \fBT\fP
+for tables.
+.RE
+
+.RS
+Codes that reveal properties of the precise tag that uses a class are
+
+.IP \fBb\fP
+for block-level elements,
+.IP \fBt\fP
+for tables,
+.IP \fBd\fP
+for table cells,
+.IP \fB\-\fP
+for table rows,
+.IP \fBH\fP
+for the possibility to set a height,
+.IP \fBN\fP
+for non-replaced inline-level elements,
+.IP \fBR\fP
+for replaced inline elements, and
+.IP \fBW\fP
+for the possibility to set a width.
+.RE
+.RE
+
+.TP
+\fB\-moduleOf\fP \fIfile\fP
+Prints the Ur module name corresponding to the source file \fIfile\fP.
+
+.TP
+\fB\-numeric\-version\fP
+Prints the version of the compiler executable without any associated English
+text.  Suitable for use in scripts.
+
+.TP
+\fB\-print\-ccompiler\fP
+Prints the executable name of the compiler that \fBurweb\fP will use.
+
+.TP
+\fB\-print\-cinclude\fP
+Prints the file system location in which \fBurweb\fP will look for C headers.
+
+.TP
+\fB\-tc\fP
+If specified, \fBurweb\fP will stop after the typechecking phase.  Liberal use
+of this option can substantially speed development, as \fBurweb\fP's
+optimization passes can take quite a while.
+
+.TP
+\fB\-version\fP
+Prints the version of the compiler executable.  Output is identical to
+\fBurweb\fP output when run without arguments.
+
+.SH "Documentation options"
+These options customize Ur/Web's documentation generator.
+
+.TP
+\fB\-demo\fP
+Performs demo-style formatting.
+
+.TP
+\fB\-guided\-demo\fP
+Performs demo-style formatting, but sizes frames to allocate less space to
+explanatory text.  Useful for generating presentations.
+
+.TP
+\fB\-noEmacs\fP
+When used with \fB\-demo\fP, causes \fBurweb\fP to \fInot\fP use Emacs to
+syntax-highlight code.  The resulting code will not be highlighted.
+
+.TP
+\fB\-tutorial\fP
+Performs tutorial-style formatting.
+
+.SH "Internal options"
+These options are not meant for users; they are used to build \fBurweb\fP
+releases and to debug the compiler.
+
+.TP
+\fB\-boot\fP
+Places \fBurweb\fP into bootstrap mode.  Used when building the standard
+library for the first time.
+
+\fB\-stop\fP \fIphase\fP
+Causes \fBurweb\fP to exit after the specified phase of compilation.
+
+.SH "TYPE INFERENCE DAEMON"
+Since Ur/Web type inference can take a significant amount of time, it can be
+helpful to cache type-inferred versions of source files.  This mode can be
+activated by running
+
+.RS
+\fBurweb daemon start\fP
+.RE
+
+Further urweb invocations in the same working directory will send requests to a
+background daemon process that reuses type inference results whenever possible,
+tracking source file dependencies and modification times.
+
+To stop the background daemon, run
+
+.RS
+\fBurweb daemon stop\fP
+.RE
+
+Communication happens via a Unix domain socket in file .urweb_daemon in the
+working directory.
+
+.SH BUGS
+\fBurweb\fP is a product of research; while it is intended to be usable for
+real work, it may occasionally fail to produce optimal results.  If you believe
+you've found a bug (e.g., the compiler throws an unhandled exception), contact
+the Ur/Web mailing list, \fIur@impredicative.com\fP.
+
+.SH COPYRIGHT
+\fBurweb\fP is copyright \(co 2008-2014 Adam Chlipala and licensed under the
+3-clause BSD license <http://www.xfree86.org/3.3.6/COPYRIGHT2.html#5>.
+
+This manual page is copyright \(co 2013, 2015 Benjamin Barenblat and licensed
+under the GNU GPL version 3 or later.

@@ -1,0 +1,165 @@
+Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: Ur/Web
+Upstream-Contact: Adam Chlipala <adamc@csail.mit.edu>
+Source: http://hg.impredicative.com/urweb
+Copyright: 2008-2011 Adam Chlipala <adamc@csail.mit.edu>
+License: BSD-3-clause
+
+Files: *
+Copyright: 2008-2014 Adam Chlipala <adamc@csail.mit.edu>
+License: BSD-3-clause
+
+Files: debian/*
+Copyright: 2013, 2014, 2015 Benjamin Barenblat <bbaren@mit.edu>
+License: GPL-3+
+
+Files: m4/ax_check_openssl.m4
+Copyright: 2009, 2010 Zmanda Inc. <http://www.zmanda.com/>
+           2009, 2010 Dustin J. Mitchell <dustin@zmanda.com>
+License: AX-free
+
+Files: m4/m4_ax_pthread.m4
+Copyright: 2008 Steven G. Johnson <stevenj@alum.mit.edu>
+           2011 Daniel Richard G. <skunk@iSKUNK.ORG>
+License: GPL-3+ with Autoconf exception
+
+Files: src/c/memmem.c
+Copyright: 2003 The NetBSD Foundation, Inc.
+License: BSD-4-clause
+
+Files:
+ src/elisp/urweb-compat.el
+ src/elisp/urweb-defs.el
+ src/elisp/urweb-mode.el
+ src/elisp/urweb-move.el
+ src/elisp/urweb-util.el
+Copyright: 1989 Lars Bo Nielsen
+           1994-1997 Matthew J. Morley
+           1999, 2000, 2003-2004 Stefan Monnier <monnier@gnu.org>
+           2008 Adam Chlipala <adamc@hcoop.net>
+License: GPL-2+
+
+Files:
+ xml/xhtml-lat1.ent
+ xml/xhtml-special.ent
+ xml/xhtml-symbol.ent
+Copyright: 1986 International Organization for Standardization 
+           2008-2011 Adam Chlipala <adamc@csail.mit.edu>
+License: BSD-3-clause
+
+License: AX-free
+ Copying and distribution of this file, with or without modification, are
+ permitted in any medium without royalty provided the copyright notice and this
+ notice are preserved.  This file is offered as-is, without any warranty.
+
+License: BSD-3-clause
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions are met:
+ .
+ - Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+ - Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+ - The names of contributors may not be used to endorse or promote products
+   derived from this software without specific prior written permission.
+ .
+ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
+ FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+License: BSD-4-clause
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions are met:
+ 1. Redistributions of source code must retain the above copyright notice, this
+    list of conditions and the following disclaimer.
+ 2. Redistributions in binary form must reproduce the above copyright notice,
+    this list of conditions and the following disclaimer in the documentation
+    and/or other materials provided with the distribution.
+ 3. All advertising materials mentioning features or use of this software must
+    display the following acknowledgement:
+        This product includes software developed by the NetBSD Foundation,
+        Inc. and its contributors.
+ 4. Neither the name of The NetBSD Foundation nor the names of its contributors
+    may be used to endorse or promote products derived from this software
+    without specific prior written permission.
+ .
+ THIS SOFTWARE IS PROVIDED BY THE NETBSD FOUNDATION, INC. AND CONTRIBUTORS "AS
+ IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ DISCLAIMED.  IN NO EVENT SHALL THE FOUNDATION OR CONTRIBUTORS BE LIABLE FOR ANY
+ DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+License: GPL-2+
+ This program is free software; you can redistribute it and/or modify it under
+ the terms of the GNU General Public License as published by the Free Software
+ Foundation; either version 2 of the License, or (at your option) any later
+ version.
+ .
+ This program is distributed in the hope that it will be useful, but WITHOUT ANY
+ WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+ PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License along with
+ this program; if not, write to the Free Software Foundation, Inc., 51 Franklin
+ Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ .
+ On Debian systems, the complete text of the GNU General Public License version
+ 2 can be found in "/usr/share/common-licenses/GPL-2".
+
+License: GPL-3+
+ This program is free software: you can redistribute it and/or modify it under
+ the terms of the GNU General Public License as published by the Free Software
+ Foundation, either version 3 of the License, or (at your option) any later
+ version.
+ .
+ This program is distributed in the hope that it will be useful, but WITHOUT ANY
+ WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+ PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License along with
+ this program.  If not, see <http://www.gnu.org/licenses/>.
+ .
+ On Debian systems, the complete text of the GNU General Public License version
+ 3 can be found in "/usr/share/common-licenses/GPL-3".
+
+License: GPL-3+ with Autoconf exception
+ This program is free software: you can redistribute it and/or modify it under
+ the terms of the GNU General Public License as published by the Free Software
+ Foundation, either version 3 of the License, or (at your option) any later
+ version.
+ .
+ This program is distributed in the hope that it will be useful, but WITHOUT ANY
+ WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+ PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License along
+ with this program. If not, see <http://www.gnu.org/licenses/>.
+ .
+ On Debian systems, the complete text of the GNU General Public License version
+ 3 can be found in "/usr/share/common-licenses/GPL-3".
+ .
+ As a special exception, the respective Autoconf Macro's copyright owner gives
+ unlimited permission to copy, distribute and modify the configure scripts that
+ are the output of Autoconf when processing the Macro.  You need not follow the
+ terms of the GNU General Public License when using or distributing such
+ scripts, even though portions of the text of the Macro appear in them.  The GNU
+ General Public License (GPL) does govern all other use of the material that
+ constitutes the Autoconf Macro.
+ .
+ This special exception to the GPL applies to versions of the Autoconf Macro
+ released by the Autoconf Archive. When you make and distribute a modified
+ version of the Autoconf Macro, you may extend this special exception to the GPL
+ to apply to your modified version as well.
