@@ -1,0 +1,8 @@
+liburweb_static.so.0 liburweb-static0 #MINVER#
+ main@Base 20150214
+ uw_copy_client_data@Base 20150214
+ uw_do_expunge@Base 20150214
+ uw_free_client_data@Base 20150214
+ uw_init_client_data@Base 20150214
+ uw_post_expunge@Base 20150214
+ uw_supports_direct_status@Base 20150214
