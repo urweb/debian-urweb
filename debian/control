@@ -124,7 +124,7 @@ Section: doc
 Architecture: all
 Multi-Arch: foreign
 Depends: ${misc:Depends}
-Recommends: pdf-viewer | xpdf
+Recommends: xpdf | pdf-viewer
 Description: Ur/Web reference manual
  Ur is a pure, functional, statically typed, strict programming language in the
  tradition of ML and Haskell; however, it features a significantly richer type
