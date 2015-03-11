@@ -11,6 +11,9 @@ Build-Depends:
  libsqlite3-dev,
  libssl-dev,
  mlton
+Build-Depends-Indep:
+ texlive-fonts-recommended,
+ texlive-latex-extra
 Standards-Version: 3.9.6
 Homepage: http://impredicative.com/ur/
 
@@ -104,3 +107,17 @@ Description: urweb static backend
  .
  This package provides the static-file backend for executables compiled with
  urweb.
+
+Package: urweb-doc
+Section: doc
+Architecture: all
+Depends: ${misc:Depends}
+Recommends: pdf-viewer | xpdf
+Description: Ur/Web reference manual
+ Ur is a pure, functional, statically typed, strict programming language in the
+ tradition of ML and Haskell; however, it features a significantly richer type
+ system.  Ur/Web is Ur plus a special standard library and associated rules for
+ parsing and optimization.  Ur/Web supports constructing dynamic web
+ applications backed by SQL databases.
+ .
+ This package provides the Ur/Web reference manual in PDF format.

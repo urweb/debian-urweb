@@ -17,6 +17,11 @@ export MLTONARGS := \
 override_dh_auto_configure:
 	SRCLIB=/usr/share/urweb dh_auto_configure
 
+.PHONY: override_dh_auto_build
+override_dh_auto_build:
+	make
+	cd doc && make manual.pdf
+
 .PHONY: override_dh_builddeb
 override_dh_builddeb:
 	dh_builddeb -- -Zxz -z9
