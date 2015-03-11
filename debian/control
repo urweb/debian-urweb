@@ -19,6 +19,7 @@ Homepage: http://impredicative.com/ur/
 
 Package: urweb
 Architecture: any
+Multi-Arch: foreign
 Depends:
  liburweb0,
  liburweb-cgi0,
@@ -41,6 +42,8 @@ Description: purely functional language for web programming
 
 Package: liburweb0
 Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Suggests:
  liburweb-cgi0,
@@ -60,6 +63,8 @@ Description: urweb runtime system
 
 Package: liburweb-cgi0
 Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: urweb CGI backend
  Ur is a pure, functional, statically typed, strict programming language in the
@@ -72,6 +77,8 @@ Description: urweb CGI backend
 
 Package: liburweb-fastcgi0
 Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: urweb FastCGI backend
  Ur is a pure, functional, statically typed, strict programming language in the
@@ -84,6 +91,8 @@ Description: urweb FastCGI backend
 
 Package: liburweb-http0
 Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: urweb standalone backend
  Ur is a pure, functional, statically typed, strict programming language in the
@@ -97,6 +106,8 @@ Description: urweb standalone backend
 
 Package: liburweb-static0
 Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: urweb static backend
  Ur is a pure, functional, statically typed, strict programming language in the
@@ -111,6 +122,7 @@ Description: urweb static backend
 Package: urweb-doc
 Section: doc
 Architecture: all
+Multi-Arch: foreign
 Depends: ${misc:Depends}
 Recommends: pdf-viewer | xpdf
 Description: Ur/Web reference manual
