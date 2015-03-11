@@ -4,6 +4,12 @@
 # Avoid overlinking and reduce library dependencies.
 export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
 
+# Harden SML executables.
+export MLTONARGS := \
+	-cc-opt "$(shell dpkg-buildflags --get CPPFLAGS) \
+		$(shell dpkg-buildflags --get CFLAGS)" \
+	-link-opt "$(shell dpkg-buildflags --get LDFLAGS)"
+
 %:
 	dh $@ --parallel --with autoreconf
 
