@@ -12,6 +12,7 @@ Build-Depends:
  libssl-dev,
  mlton
 Build-Depends-Indep:
+ emacs24 | emacsen,
  texlive-fonts-recommended,
  texlive-latex-extra
 Standards-Version: 3.9.6
@@ -29,7 +30,8 @@ Depends:
  ${shlibs:Depends},
  ${misc:Depends}
 Recommends:
- urweb-doc
+ urweb-doc,
+ urweb-mode
 Description: purely functional language for web programming
  Ur is a pure, functional, statically typed, strict programming language in the
  tradition of ML and Haskell; however, it features a significantly richer type
@@ -133,3 +135,17 @@ Description: Ur/Web reference manual
  applications backed by SQL databases.
  .
  This package provides the Ur/Web reference manual in PDF format.
+
+Package: urweb-mode
+Section: editors
+Architecture: all
+Multi-Arch: foreign
+Depends: emacsen-common, ${misc:Depends}
+Description: Emacs mode for editing Ur/Web programs
+ Ur is a pure, functional, statically typed, strict programming language in the
+ tradition of ML and Haskell; however, it features a significantly richer type
+ system.  Ur/Web is Ur plus a special standard library and associated rules for
+ parsing and optimization.  Ur/Web supports constructing dynamic web
+ applications backed by SQL databases.
+ .
+ This package provides an Emacs mode for editing Ur/Web source files.

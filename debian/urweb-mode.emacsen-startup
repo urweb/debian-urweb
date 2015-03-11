@@ -1,0 +1,21 @@
+;; -*-emacs-lisp-*-
+
+(if (not (file-exists-p "/usr/share/emacs/site-lisp/urweb-mode"))
+    (message "Package urweb-mode removed but not purged.  Skipping setup.")
+
+  (let ((pkgdir (concat "/usr/share/"
+                        (symbol-name debian-emacs-flavor)
+                        "/site-lisp/urweb-mode")))
+
+    ;; Only load urweb-mode if it has been installed.
+    (if (zerop (length (file-expand-wildcards pkgdir)))
+        (message "urweb-mode not for this flavor.  Skipping.")
+
+      ;; The urweb-mode package follows the Debian/GNU Linux 'emacsen' policy
+      ;; and byte-compiles its elisp files for each 'emacs flavor'.  The
+      ;; compiled code is then installed in a subdirectory of the respective
+      ;; site-lisp directory.
+      (debian-pkg-add-load-path-item pkgdir)
+
+      ;; Autoload urweb-mode top-level functions site-wide.
+      (load "urweb-mode-startup"))))
