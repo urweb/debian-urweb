@@ -140,7 +140,9 @@ Package: urweb-mode
 Section: editors
 Architecture: all
 Multi-Arch: foreign
-Depends: emacsen-common, ${misc:Depends}
+Depends:
+ emacsen-common (>= 2.0.8),
+ ${misc:Depends}
 Description: Emacs mode for editing Ur/Web programs
  Ur is a pure, functional, statically typed, strict programming language in the
  tradition of ML and Haskell; however, it features a significantly richer type
