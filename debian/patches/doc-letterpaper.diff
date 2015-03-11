@@ -1,0 +1,14 @@
+From: Benjamin Barenblat <bbaren@mit.edu>
+Subject: Use letter-size paper for reference manual
+Forwarded: no
+
+LaTeX on Debian defaults to A4 paper, but the official reference manual
+(as available on the Ur/Web site) uses letter paper.
+--- a/doc/manual.tex
++++ b/doc/manual.tex
+@@ -1,4 +1,5 @@
+ \documentclass{article}
++\usepackage[letterpaper,pass]{geometry}
+ \usepackage{fullpage,amsmath,amssymb,proof,url}
+ \usepackage[T1]{fontenc}
+ \usepackage{ae,aecompl}
