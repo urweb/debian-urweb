@@ -22,6 +22,10 @@ Package: urweb
 Architecture: any
 Multi-Arch: foreign
 Depends:
+ libmysqlclient-dev,
+ libpq-dev,
+ libsqlite3-dev,
+ libssl-dev,
  liburweb0,
  liburweb-cgi0,
  liburweb-fastcgi0,
