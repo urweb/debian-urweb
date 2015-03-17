@@ -21,6 +21,7 @@ Homepage: http://impredicative.com/ur/
 Package: urweb
 Architecture: any
 Multi-Arch: foreign
+Pre-Depends: ${misc:Pre-Depends}
 Depends:
  libmysqlclient-dev,
  libpq-dev,
