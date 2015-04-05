@@ -13,6 +13,11 @@ Files: debian/*
 Copyright: 2013, 2014, 2015 Benjamin Barenblat <bbaren@mit.edu>
 License: Apache-2.0
 
+Files: debian/*.emacsen*
+Copyright: 1998-2011 Craig Small <csmall@debian.org>
+           2015 Benjamin Barenblat <bbaren@mit.edu>
+License: Apache-2.0
+
 Files: m4/ax_check_openssl.m4
 Copyright: 2009, 2010 Zmanda Inc. <http://www.zmanda.com/>
            2009, 2010 Dustin J. Mitchell <dustin@zmanda.com>

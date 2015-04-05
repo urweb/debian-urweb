@@ -1,30 +1,41 @@
 #!/bin/sh -e
-#/usr/lib/emacsen-common/packages/install/urweb-mode
+# /usr/lib/emacsen-common/packages/install/urweb-mode
+
+# Written by Jim Van Zandt <jrv@debian.org>, borrowing heavily
+# from the install scripts for gettext by Santiago Vila
+# <sanvila@ctv.es> and octave by Dirk Eddelbuettel <edd@debian.org>.
 
 FLAVOR=$1
+PACKAGE=urweb-mode
+
 if [ ${FLAVOR} = emacs ]; then exit 0; fi
 
-PACKAGE=urweb-mode
 echo install/${PACKAGE}: Handling install for emacsen flavor ${FLAVOR}
 
-# The byte-compiled files goes into the site-lisp directory.
-BCDIR=/usr/share/${FLAVOR}/site-lisp/${PACKAGE}
-install -m 755 -d ${BCDIR}
+FLAGS="${SITEFLAG} -q -batch -l path.el -f batch-byte-compile"
 
-# The elisp source files are in the generic site-lisp directory.
-SRCDIR=/usr/share/emacs/site-lisp/${PACKAGE}
-SRC=`find ${SRCDIR} -name '*.el' -exec basename '{}' ';'`
+ELDIR=/usr/share/emacs/site-lisp/${PACKAGE}
+ELCDIR=/usr/share/${FLAVOR}/site-lisp/${PACKAGE}
+ELRELDIR=../../../emacs/site-lisp/${PACKAGE}
 
-# Prepare for byte-compiling the source files.
-cd ${BCDIR}
-ln -sf ${SRCDIR}/*.el .
+# Install-info-altdir does not actually exist.
+# Maybe somebody will write it.
+if test -x /usr/sbin/install-info-altdir; then
+    echo install/${PACKAGE}: install Info links for ${FLAVOR}
+    install-info-altdir --quiet --section "" "" --dirname=${FLAVOR} /usr/share/info/${PACKAGE}.info.gz
+fi
+
+install -m 755 -d ${ELCDIR}
+cd ${ELDIR}
+FILES=`echo *.el`
+cd ${ELCDIR}
+ln -sf ${ELRELDIR}/*.el .
+
 cat << EOF > path.el
-(setq load-path (cons "." load-path) byte-compile-warnings nil)
+(debian-pkg-add-load-path-item ".")
+(setq byte-compile-warnings nil)
 EOF
-
-# Byte-compile elisp files.
-FLAGS="--no-site-file --no-init-file --batch -l path.el -f batch-byte-compile"
-${FLAVOR} ${FLAGS} ${SRC}
+${FLAVOR} ${FLAGS} ${FILES}
 rm -f path.el
 
 exit 0
