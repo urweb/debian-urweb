@@ -3402,7 +3402,7 @@ fun monoExp (env, st, fm) (all as (e, loc)) =
                                                                        strH s',
                                                                        (L'.EStrcat (
                                                                         (L'.EJavaScript (L'.Attribute, e), loc),
-                                                                        strH ");return false'"), loc)),
+                                                                        strH ")'"), loc)),
                                                                        loc)), loc),
                                                          fm)
                                                     end
@@ -4682,8 +4682,8 @@ fun monoize env file =
                                      (L'.EDml (str
                                                    (foldl (fn ((x, _), s) =>
                                                               s ^ ", " ^ Settings.mangleSql x ^ " = NULL")
-                                                          ("UPDATE uw_"
-                                                           ^ tab
+                                                          ("UPDATE "
+                                                           ^ Settings.mangleSql tab
                                                            ^ " SET "
                                                            ^ Settings.mangleSql x
                                                                       ^ " = NULL")
