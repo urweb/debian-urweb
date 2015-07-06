@@ -18,7 +18,8 @@ export MLTONARGS := \
 
 .PHONY: override_dh_auto_configure
 override_dh_auto_configure:
-	SRCLIB=/usr/share/urweb dh_auto_configure --
+	LIB=/usr/lib/$(DEB_HOST_MULTIARCH) \
+		SRCLIB=/usr/share/urweb dh_auto_configure --
 
 .PHONY: override_dh_auto_build
 override_dh_auto_build:
