@@ -1,10 +1,12 @@
-urweb (20150520+dfsg-1) unstable; urgency=medium
+urweb (20150520+dfsg-1) sid; urgency=medium
 
   * New upstream release.
+  * Build documentation within an architecture-independent target. (Closes:
+    #790512)
   * Make static linking work on multiarch systems. (Closes: #791551)
   * Correct manual page with respect to the behaviour of the -static flag.
 
- -- Benjamin Barenblat <bbaren@mit.edu>  Mon, 06 Jul 2015 00:34:39 -0400
+ -- Benjamin Barenblat <bbaren@mit.edu>  Sun, 26 Jul 2015 19:10:00 -0400
 
 urweb (20150412+dfsg-1) unstable; urgency=medium
 
