@@ -3,6 +3,7 @@ Section: devel
 Priority: extra
 Maintainer: Benjamin Barenblat <bbaren@mit.edu>
 Build-Depends:
+ curl,
  debhelper (>= 9),
  dh-autoreconf,
  dh-exec,
@@ -10,7 +11,8 @@ Build-Depends:
  libpq-dev,
  libsqlite3-dev,
  libssl-dev,
- mlton
+ mlton,
+ sqlite3
 Build-Depends-Indep:
  emacs24 | emacsen,
  texlive-fonts-recommended,
