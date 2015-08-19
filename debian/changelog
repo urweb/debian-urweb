@@ -1,8 +1,8 @@
-urweb (20150819+dfsg-1) UNRELEASED; urgency=medium
+urweb (20150819+dfsg-1) experimental; urgency=medium
 
   * New upstream release.
 
- -- Benjamin Barenblat <bbaren@mit.edu>  Wed, 19 Aug 2015 11:07:48 -0400
+ -- Benjamin Barenblat <bbaren@mit.edu>  Wed, 19 Aug 2015 11:40:08 -0400
 
 urweb (20150520+dfsg-1) sid; urgency=medium
 
