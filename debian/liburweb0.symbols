@@ -333,6 +333,7 @@ liburweb.so.0 liburweb0 #MINVER#
  uw_time@Base 20150214
  uw_time_max@Base 20150214
  uw_transactionals_max@Base 20150214
+ uw_try_reconnecting_and_restarting@Base 20151018
  uw_unit_v@Base 20150214
  uw_unnull@Base 20150214
  uw_write@Base 20150214
