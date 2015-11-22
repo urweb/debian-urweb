@@ -62,6 +62,7 @@ liburweb.so.0 liburweb0 #MINVER#
  uw_Basis_floatToString@Base 20150214
  uw_Basis_fresh@Base 20150214
  uw_Basis_fromDatetime@Base 20150214
+ uw_Basis_fromMilliseconds@Base 20151122
  uw_Basis_getHeader@Base 20150214
  uw_Basis_get_cookie@Base 20150214
  uw_Basis_get_settings@Base 20150214
