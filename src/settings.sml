@@ -342,6 +342,7 @@ val jsFuncsBase = basisM [("alert", "alert"),
                           ("addSeconds", "addSeconds"),
                           ("diffInSeconds", "diffInSeconds"),
                           ("toMilliseconds", "toMilliseconds"),
+                          ("fromMilliseconds", "fromMilliseconds"),
                           ("diffInMilliseconds", "diffInMilliseconds"),
 
                           ("fromDatetime", "fromDatetime"),
@@ -375,7 +376,10 @@ val jsFuncsBase = basisM [("alert", "alert"),
                           ("atom", "atom"),
                           ("css_url", "css_url"),
                           ("property", "property"),
-                          ("giveFocus", "giveFocus")]
+                          ("giveFocus", "giveFocus"),
+
+                          ("htmlifySpecialChar", "htmlifySpecialChar"),
+                          ("chr", "chr")]
 val jsFuncs = ref jsFuncsBase
 fun setJsFuncs ls = jsFuncs := foldl (fn ((k, v), m) => M.insert (m, k, v)) jsFuncsBase ls
 fun jsFunc x = M.find (!jsFuncs, x)
@@ -722,11 +726,6 @@ val minHeap = ref 0
 fun setMinHeap n = if n >= 0 then minHeap := n else raise Fail "Trying to set negative minHeap"
 fun getMinHeap () = !minHeap
 
-structure SS = BinarySetFn(struct
-                           type ord_key = string
-                           val compare = String.compare
-                           end)
-
 val alwaysInline = ref SS.empty
 fun addAlwaysInline s = alwaysInline := SS.add (!alwaysInline, s)
 fun checkAlwaysInline s = SS.member (!alwaysInline, s)
@@ -880,7 +879,7 @@ fun addFile {Uri, LoadFromFilename} =
     in
         case SM.find (!files, Uri) of
             SOME (path', _) =>
-            if path' = path then
+            if OS.Path.mkCanonical path' = OS.Path.mkCanonical path then
                 ()
             else
                 ErrorMsg.error ("Two different files requested for URI " ^ Uri ^ " ( " ^ path' ^ " vs. " ^ path ^ ")")
@@ -903,5 +902,49 @@ fun addFile {Uri, LoadFromFilename} =
                ErrorMsg.error ("Error loading file " ^ LoadFromFilename ^ " (" ^ s ^ ")")
 
 fun listFiles () = map #2 (SM.listItems (!files))
+
+fun reset () =
+    (urlPrefixFull := "/";
+     urlPrefix := "/";
+     urlPrePrefix := "";
+     timeout := 0;
+     headers := [];
+     scripts := [];
+     clientToServer := clientToServerBase;
+     effectful := effectfulBase;
+     benign := benignBase;
+     client := clientBase;
+     server := serverBase;
+     jsFuncs := jsFuncsBase;
+     rewrites := [];
+     url := [];
+     mime := [];
+     request := [];
+     response := [];
+     env := [];
+     debug := false;
+     dbstring := NONE;
+     exe := NONE;
+     sql := NONE;
+     coreInline := 5;
+     monoInline := 5;
+     staticLinking := false;
+     deadlines := false;
+     sigFile := NONE;
+     safeGet := SS.empty;
+     onError := NONE;
+     limitsList := [];
+     minHeap := 0;
+     alwaysInline := SS.empty;
+     neverInline := SS.empty;
+     noXsrfProtection := SS.empty;
+     timeFormat := "%c";
+     mangle := true;
+     html5 := false;
+     less := false;
+     noMimeFile := false;
+     mimeTypes := NONE;
+     files := SM.empty;
+     filePath := ".")
 
 end
