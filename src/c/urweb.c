@@ -806,9 +806,6 @@ static void uw_try_reconnecting(uw_context ctx) {
     ctx->db = NULL;
   }
   ctx->app->db_init(ctx);
-
-  if (!ctx->db)
-    uw_error(ctx, FATAL, "Error reopening database connection");
 }
 
 void uw_try_reconnecting_and_restarting(uw_context ctx) {
@@ -4061,6 +4058,11 @@ uw_Basis_int uw_Basis_diffInSeconds(uw_context ctx, uw_Basis_time tm1, uw_Basis_
 
 uw_Basis_int uw_Basis_toMilliseconds(uw_context ctx, uw_Basis_time tm) {
   return tm.seconds * 1000 + tm.microseconds / 1000;
+}
+
+uw_Basis_time uw_Basis_fromMilliseconds(uw_context ctx, uw_Basis_int n) {
+  uw_Basis_time tm = {n / 1000, n % 1000 * 1000};
+  return tm;
 }
 
 uw_Basis_int uw_Basis_diffInMilliseconds(uw_context ctx, uw_Basis_time tm1, uw_Basis_time tm2) {
