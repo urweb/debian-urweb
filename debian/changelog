@@ -1,8 +1,10 @@
-urweb (20151220+dfsg-1) UNRELEASED; urgency=medium
+urweb (20151220+dfsg-1) unstable; urgency=medium
 
   * New upstream release.
+  * Build architecture-independent targets correctly when built with
+    dpkg-buildpackage -A. (Closes: #806662)
 
- -- Benjamin Barenblat <bbaren@mit.edu>  Wed, 23 Dec 2015 16:07:03 -0500
+ -- Benjamin Barenblat <bbaren@mit.edu>  Wed, 23 Dec 2015 18:36:16 -0500
 
 urweb (20151122+dfsg-1) unstable; urgency=medium
 
