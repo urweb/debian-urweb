@@ -12,7 +12,8 @@ Build-Depends:
  libsqlite3-dev,
  libssl-dev,
  mlton,
- sqlite3
+ sqlite3,
+ uthash-dev
 Build-Depends-Indep:
  emacs24 | emacsen,
  texlive-fonts-recommended,
@@ -36,6 +37,7 @@ Depends:
  liburweb-fastcgi0,
  liburweb-http0,
  liburweb-static0,
+ uthash-dev,
  ${shlibs:Depends},
  ${misc:Depends}
 Recommends:
