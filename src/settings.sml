@@ -151,7 +151,8 @@ val effectfulBase = basis ["dml",
 
 val effectful = ref effectfulBase
 fun setEffectful ls = effectful := S.addList (effectfulBase, ls)
-fun isEffectful x = S.member (!effectful, x)
+fun isEffectful ("Sqlcache", _) = true
+  | isEffectful x = S.member (!effectful, x)
 fun addEffectful x = effectful := S.add (!effectful, x)
 
 val benignBase = basis ["get_cookie",
@@ -801,6 +802,10 @@ val less = ref false
 fun setLessSafeFfi b = less := b
 fun getLessSafeFfi () = !less
 
+val sqlcache = ref false
+fun setSqlcache b = sqlcache := b
+fun getSqlcache () = !sqlcache
+
 structure SM = BinaryMapFn(struct
                            type ord_key = string
                            val compare = String.compare
@@ -903,6 +908,25 @@ fun addFile {Uri, LoadFromFilename} =
 
 fun listFiles () = map #2 (SM.listItems (!files))
 
+val jsFiles = ref (SM.empty : {Filename : string, Content : string} SM.map)
+
+fun addJsFile LoadFromFilename =
+    let
+        val path = OS.Path.concat (!filePath, LoadFromFilename)
+        val inf = TextIO.openIn path
+    in
+        jsFiles := SM.insert (!jsFiles,
+                              path,
+                              {Filename = LoadFromFilename,
+                               Content = TextIO.inputAll inf});
+        TextIO.closeIn inf
+    end handle IO.Io _ =>
+               ErrorMsg.error ("Error loading file " ^ LoadFromFilename)
+             | OS.SysErr (s, _) =>
+               ErrorMsg.error ("Error loading file " ^ LoadFromFilename ^ " (" ^ s ^ ")")
+
+fun listJsFiles () = SM.listItems (!jsFiles)
+
 fun reset () =
     (urlPrefixFull := "/";
      urlPrefix := "/";
@@ -945,6 +969,7 @@ fun reset () =
      noMimeFile := false;
      mimeTypes := NONE;
      files := SM.empty;
+     jsFiles := SM.empty;
      filePath := ".")
 
 end
