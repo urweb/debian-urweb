@@ -199,6 +199,11 @@ liburweb.so.0 liburweb0 #MINVER#
  uw_Basis_urlifyTime_w@Base 20150214
  uw_Basis_writec@Base 20150214
  uw_Estrings@Base 20150214
+ uw_Sqlcache_check@Base 20151220
+ uw_Sqlcache_flush@Base 20151220
+ uw_Sqlcache_rlock@Base 20151220
+ uw_Sqlcache_store@Base 20151220
+ uw_Sqlcache_wlock@Base 20151220
  uw_app_init@Base 20150214
  uw_begin@Base 20150214
  uw_begin_html5@Base 20150214
@@ -283,6 +288,8 @@ liburweb.so.0 liburweb0 #MINVER#
  uw_queryString@Base 20150214
  uw_really_send@Base 20150214
  uw_really_write@Base 20150214
+ uw_recordingRead@Base 20151220
+ uw_recordingStart@Base 20151220
  uw_redirect@Base 20150214
  uw_register_transactional@Base 20150214
  uw_remoteSock@Base 20150214
