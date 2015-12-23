@@ -6,7 +6,6 @@ Build-Depends:
  curl,
  debhelper (>= 9),
  dh-autoreconf,
- dh-exec,
  libmysqlclient-dev,
  libpq-dev,
  libsqlite3-dev,
