@@ -163,22 +163,25 @@
                    r := L'.KKnown k1All)
                   handle Subscript => err KIncompatible)
            | (L'.KTupleUnif (loc, nks1, r1 as ref (L'.KUnknown f1)), L'.KTupleUnif (_, nks2, r2 as ref (L'.KUnknown f2))) =>
-             let
-                 val nks = foldl (fn (p as (n, k1), nks) =>
-                                     case ListUtil.search (fn (n', k2) =>
-                                                              if n' = n then
-                                                                  SOME k2
-                                                              else
-                                                                  NONE) nks2 of
-                                         NONE => p :: nks
-                                       | SOME k2 => (unifyKinds' env k1 k2;
-                                                     nks)) nks2 nks1
+             if r1 = r2 then
+                 ()
+             else
+                 let
+                     val nks = foldl (fn (p as (n, k1), nks) =>
+                                         case ListUtil.search (fn (n', k2) =>
+                                                                  if n' = n then
+                                                                      SOME k2
+                                                                  else
+                                                                      NONE) nks2 of
+                                             NONE => p :: nks
+                                           | SOME k2 => (unifyKinds' env k1 k2;
+                                                         nks)) nks2 nks1
 
-                 val k = (L'.KTupleUnif (loc, nks, ref (L'.KUnknown (fn x => f1 x andalso f2 x))), loc)
-             in
-                 r1 := L'.KKnown k;
-                 r2 := L'.KKnown k
-             end
+                     val k = (L'.KTupleUnif (loc, nks, ref (L'.KUnknown (fn x => f1 x andalso f2 x))), loc)
+                 in
+                     r1 := L'.KKnown k;
+                     r2 := L'.KKnown k
+                 end
 
            | _ => err KIncompatible
      end
@@ -282,6 +285,7 @@
  fun hnormKind (kAll as (k, _)) =
      case k of
          L'.KUnif (_, _, ref (L'.KKnown k)) => hnormKind k
+       | L'.KTupleUnif (_, _, ref (L'.KKnown k)) => hnormKind k
        | _ => kAll
 
  open ElabOps
@@ -641,10 +645,10 @@
             | (L'.KUnif (_, _, r), _) =>
               let
                   val ku = kunif env loc
-                  val k = (L'.KTupleUnif (loc, [(n, ku)], r), loc)
+                  val k = (L'.KTupleUnif (loc, [(n, ku)], ref (L'.KUnknown (fn _ => true))), loc)
               in
                   r := L'.KKnown k;
-                  k
+                  ku
               end
             | (L'.KTupleUnif (_, nks, r), _) =>
               (case ListUtil.search (fn (n', k) => if n' = n then SOME k else NONE) nks of
@@ -652,10 +656,10 @@
                  | NONE =>
                    let
                        val ku = kunif env loc
-                       val k = (L'.KTupleUnif (loc, ((n, ku) :: nks), r), loc)
+                       val k = (L'.KTupleUnif (loc, ((n, ku) :: nks), ref (L'.KUnknown (fn _ => true))), loc)
                    in
                        r := L'.KKnown k;
-                       k
+                       ku
                    end)
             | k => raise CUnify' (env, CKindof (k, c, "tuple")))
 
@@ -1341,6 +1345,31 @@
            | (L'.CProj (c1, n1), _) => projSpecial1 (c1, n1, fn () => err CIncompatible)
            | (_, L'.CProj (c2, n2)) => projSpecial2 (c2, n2, fn () => err CIncompatible)
 
+           | (L'.CTuple cs, L'.CRel x) =>
+             (case hnormKind (kindof env c2All) of
+                  (L'.KTuple ks, _) =>
+                  if length cs <> length ks then
+                      err CIncompatible
+                  else
+                      let
+                          fun rightProjs (cs, n) =
+                              case cs of
+                                  c :: cs' =>
+                                  (case hnormCon env c of
+                                       (L'.CProj ((L'.CRel x', _), n'), _) =>
+                                       x' = x andalso n' = n andalso rightProjs (cs', n+1)
+                                     | _ => false)
+                                  | [] => true
+                      in
+                          if rightProjs (cs, 1) then
+                              ()
+                          else
+                              err CIncompatible
+                      end
+                | _ => err CIncompatible)
+           | (L'.CRel x, L'.CTuple cs) =>
+             unifyCons'' env loc c2All c1All
+
            | (L'.CMap (dom1, ran1), L'.CMap (dom2, ran2)) =>
              (unifyKinds env dom1 dom2;
               unifyKinds env ran1 ran2)
@@ -1497,8 +1526,8 @@
 
 fun elabPat (pAll as (p, loc), (env, bound)) =
     let
-        val perror = (L'.PWild, loc)
         val terror = (L'.CError, loc)
+        val perror = (L'.PVar ("_", terror), loc)
         val pterror = (perror, terror)
         val rerror = (pterror, (env, bound))
 
@@ -1534,11 +1563,9 @@ fun elabPat (pAll as (p, loc), (env, bound)) =
                 end
     in
         case p of
-            L.PWild => (((L'.PWild, loc), cunif env (loc, (L'.KType, loc))),
-                        (env, bound))
-          | L.PVar x =>
+            L.PVar x =>
             let
-                val t = if SS.member (bound, x) then
+                val t = if x <> "_" andalso SS.member (bound, x) then
                             (expError env (DuplicatePatternVariable (loc, x));
                              terror)
                         else
@@ -1613,6 +1640,8 @@ fun elabPat (pAll as (p, loc), (env, bound)) =
 (* This exhaustiveness checking follows Luc Maranget's paper "Warnings for pattern matching." *)
 fun exhaustive (env, t, ps, loc) =
     let
+        val pwild = L'.PVar ("_", t)
+
         fun fail n = raise Fail ("Elaborate.exhaustive: Impossible " ^ Int.toString n)
 
         fun patConNum pc =
@@ -1654,7 +1683,7 @@ fun exhaustive (env, t, ps, loc) =
                     val loc = #2 p1
 
                     fun wild () =
-                        SOME (map (fn _ => (L'.PWild, loc)) args @ ps)
+                        SOME (map (fn _ => (pwild, loc)) args @ ps)
                 in
                     case #1 p1 of
                         L'.PPrim _ => NONE
@@ -1675,9 +1704,8 @@ fun exhaustive (env, t, ps, loc) =
                                                                    SOME p
                                                                else
                                                                    NONE) xpts of
-                                          NONE => (L'.PWild, loc)
+                                          NONE => (pwild, loc)
                                         | SOME p => p) args @ ps)
-                      | L'.PWild => wild ()
                       | L'.PVar _ => wild ()
                 end)
             P
@@ -1687,8 +1715,7 @@ fun exhaustive (env, t, ps, loc) =
             (fn [] => fail 2
               | (p1, _) :: ps =>
                 case p1 of
-                    L'.PWild => SOME ps
-                  | L'.PVar _ => SOME ps
+                    L'.PVar _ => SOME ps
                   | L'.PPrim _ => NONE
                   | L'.PCon _ => NONE
                   | L'.PRecord _ => NONE)
@@ -1818,8 +1845,8 @@ fun exhaustive (env, t, ps, loc) =
                           | SOME ps =>
                             let
                                 val p = case cons of
-                                            [] => L'.PWild
-                                          | (0, _) :: _ => L'.PWild
+                                            [] => pwild
+                                          | (0, _) :: _ => pwild
                                           | _ =>
                                             case IS.find (fn _ => true) unused of
                                                 NONE => fail 6
@@ -1832,7 +1859,7 @@ fun exhaustive (env, t, ps, loc) =
                                                     SOME (n, []) =>
                                                     L'.PCon (L'.Default, nameOfNum (#1 t1, n), [], NONE)
                                                   | SOME (n, [_]) =>
-                                                    L'.PCon (L'.Default, nameOfNum (#1 t1, n), [], SOME (L'.PWild, loc))
+                                                    L'.PCon (L'.Default, nameOfNum (#1 t1, n), [], SOME (pwild, loc))
                                                   | _ => fail 7
                             in
                                 SOME ((p, loc) :: ps)

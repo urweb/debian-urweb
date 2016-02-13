@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2012, 2014, Adam Chlipala
+(* Copyright (c) 2008-2012, 2014, 2016, Adam Chlipala
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -412,6 +412,14 @@ fun inputCommentableLine inf =
 
 val lastUrp = ref ""
 
+structure SK = struct
+type ord_key = string
+val compare = String.compare
+end
+
+structure SS = BinarySetFn(SK)
+structure SM = BinaryMapFn(SK)
+
 fun parseUrp' accLibs fname =
     (lastUrp := fname;
      if not (Posix.FileSys.access (fname ^ ".urp", []) orelse Posix.FileSys.access (fname ^ "/lib.urp", []))
@@ -459,6 +467,7 @@ fun parseUrp' accLibs fname =
          let
              val pathmap = ref (!pathmap)
              val bigLibs = ref []
+             val libSet = ref SS.empty
 
              fun pu filename =
                  let
@@ -822,10 +831,19 @@ fun parseUrp' accLibs fname =
                                               fkind := {action = Settings.Deny, kind = kind, pattern = pattern} :: !fkind
                                           end
                                         | _ => ErrorMsg.error "Bad 'deny' syntax")
-                                   | "library" => if accLibs then
-                                                      libs := pu (libify (relify arg)) :: !libs
-                                                  else
-                                                      bigLibs := libify' arg :: !bigLibs
+                                   | "library" =>
+                                     if accLibs then
+                                         let
+                                             val arg = libify (relify arg)
+                                         in
+                                             if SS.member (!libSet, arg) then
+                                                 ()
+                                             else
+                                                 (libs := pu arg :: !libs;
+                                                  libSet := SS.add (!libSet, arg))
+                                         end
+                                     else
+                                         bigLibs := libify' arg :: !bigLibs
                                    | "path" =>
                                      (case String.fields (fn ch => ch = #"=") arg of
                                           [n, v] => ((pathmap := M.insert (!pathmap, n, OS.Path.mkAbsolute {path = v, relativeTo = dir}))
@@ -878,7 +896,7 @@ fun parseUrp' accLibs fname =
                                    | "jsFile" =>
                                      (Settings.setFilePath thisPath;
                                       Settings.addJsFile arg)
-                                     
+
                                    | _ => ErrorMsg.error ("Unrecognized command '" ^ cmd ^ "'");
                                  read ()
                              end
@@ -935,14 +953,6 @@ fun addModuleRoot (k, v) = moduleRoots :=
                            (OS.Path.mkAbsolute {path = k,
                                                 relativeTo = OS.FileSys.getDir ()},
                             v) :: !moduleRoots
-
-structure SK = struct
-type ord_key = string
-val compare = String.compare
-end
-
-structure SS = BinarySetFn(SK)
-structure SM = BinaryMapFn(SK)
 
 exception MissingFile of string
 
@@ -1503,7 +1513,9 @@ fun compileC {cname, oname, ename, libs, profile, debug, linker, link = link'} =
     let
         val proto = Settings.currentProtocol ()
 
-        val lib = if Settings.getStaticLinking () then
+        val lib = if Settings.getBootLinking () then
+                      !Settings.configLib ^ "/" ^ #linkStatic proto ^ " " ^ !Settings.configLib ^ "/liburweb.a"
+                  else if Settings.getStaticLinking () then
                       " -static " ^ !Settings.configLib ^ "/" ^ #linkStatic proto ^ " " ^ !Settings.configLib ^ "/liburweb.a"
                   else
                       "-L" ^ !Settings.configLib ^ " " ^ #linkDynamic proto ^ " -lurweb"
@@ -1518,7 +1530,16 @@ fun compileC {cname, oname, ename, libs, profile, debug, linker, link = link'} =
                       ^ " " ^ #compile proto
                       ^ " -c " ^ escapeFilename cname ^ " -o " ^ escapeFilename oname
 
-        val linker = Option.getOpt (linker, (Settings.getCCompiler ()) ^ " -Werror" ^ opt ^ " " ^ Config.ccArgs ^ " " ^ Config.pthreadCflags ^ " " ^ Config.pthreadLibs)
+        fun concatArgs (a1, a2) =
+            if CharVector.all Char.isSpace a1 then
+                a2
+            else
+                a1 ^ " " ^ a2
+
+        val args = concatArgs (Config.ccArgs, Config.pthreadCflags)
+        val args = concatArgs (args, Config.pthreadLibs)
+
+        val linker = Option.getOpt (linker, (Settings.getCCompiler ()) ^ " -Werror" ^ opt ^ " " ^ args)
 
         val ssl = if Settings.getStaticLinking () then
                       Config.openssl ^ " -ldl -lz"

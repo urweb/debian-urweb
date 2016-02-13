@@ -1,14 +1,14 @@
-AC_INIT([urweb], [20151220])
+AC_INIT([urweb], [20160213])
 WORKING_VERSION=0
 AC_USE_SYSTEM_EXTENSIONS
 
 # automake 1.12 requires this, but automake 1.11 doesn't recognize it
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 
+AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign no-define])
 AC_PROG_CC()
 AC_PROG_LIBTOOL()
-AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([include/urweb/config.h])
 
 AX_PTHREAD([echo >/dev/null], [echo "Your C compiler does not support POSIX threads."; exit 1])
@@ -91,25 +91,7 @@ if test [-z $SQHEADER]; then
 fi
 
 if test [$WORKING_VERSION = "1"]; then
-   VERSION="$VERSION + `hg identify || (cat .hg_archival.txt | grep 'node\:') || echo ?`"
-fi
-
-# Clang does not like being passed -pthread, since it's implicit on OS X.
-# So let's get rid of that! Here's to hoping it doesn't break Clang
-# on other platforms.
-AC_MSG_CHECKING([if compiling with clang])
-AC_COMPILE_IFELSE(
-[AC_LANG_PROGRAM([], [[
-#ifndef __clang__
-       not clang
-#endif
-]])],
-[CLANG=yes], [CLANG=no])
-AC_MSG_RESULT([$CLANG])
-
-if test [$CLANG = "yes"]; then
-   PTHREAD_CFLAGS=""
-   PTHREAD_LIBS=""
+   VERSION="$VERSION + `git log -1 --format="%H" || echo ?`"
 fi
 
 # Check if pthread_t is a scalar or pointer type so we can use the correct
@@ -160,7 +142,7 @@ Ur/Web configuration:
   include directory:   INCLUDE        $INCLUDE
   site-lisp directory: SITELISP       $SITELISP
   C compiler:          CC             $CC
-  Extra CC args:       CCARGS         $CCARGS  
+  Extra CC args:       CCARGS         $CCARGS
   Extra MLTON args:    MLTONARGS      $MLTONARGS
   Postgres C header:   PGHEADER       $PGHEADER
   MySQL C header:      MSHEADER       $MSHEADER
