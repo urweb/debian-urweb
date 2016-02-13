@@ -20,7 +20,7 @@ Build-Depends-Indep:
 Standards-Version: 3.9.6
 Homepage: http://impredicative.com/ur/
 Vcs-Browser: https://github.com/urweb/debian-urweb
-Vcs-Git: git://github.com/urweb/debian-urweb.git
+Vcs-Git: https://github.com/urweb/debian-urweb.git
 
 Package: urweb
 Architecture: any
