@@ -6,11 +6,11 @@ Copyright: 2008-2011 Adam Chlipala <adamc@csail.mit.edu>
 License: BSD-3-clause
 
 Files: *
-Copyright: 2008-2015 Adam Chlipala <adamc@csail.mit.edu>
+Copyright: 2008-2016 Adam Chlipala <adamc@csail.mit.edu>
 License: BSD-3-clause
 
 Files: debian/*
-Copyright: 2013, 2014, 2015 Benjamin Barenblat <bbaren@mit.edu>
+Copyright: 2013, 2014, 2015, 2016 Benjamin Barenblat <bbaren@mit.edu>
 License: Apache-2.0
 
 Files: debian/*.emacsen*
