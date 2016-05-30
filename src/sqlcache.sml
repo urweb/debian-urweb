@@ -1370,9 +1370,9 @@ fun cacheExp (env, exp', invalInfo, state : state) =
                                  (case arg of
                                       AsIs exp => SOME exp
                                     | Urlify exp =>
-                                      typOfExp env exp
+                                      (typOfExp env exp)
                                       <\obind\>
-                                       (fn typ => (MonoFooify.urlify env (exp, typ))))
+                                       (fn typ => MonoFooify.urlify env (exp, typ)))
                                  <\obind\>
                                   (fn arg' => SOME (arg' :: args'))))
                         (SOME [])
@@ -1588,18 +1588,19 @@ fun addFlushing ((file, {tableToIndices, indexToInvalInfo, ffiInfo, ...} : state
                 val inval =
                     case Sql.parse Sql.dml dmlText of
                         SOME dmlParsed =>
-                        SOME (map (fn i => (case IM.find (indexToInvalInfo, i) of
+                        SOME (map (fn i => case IM.find (indexToInvalInfo, i) of
                                                 SOME invalInfo =>
                                                 (i, invalidations (invalInfo, dmlParsed))
                                               (* TODO: fail more gracefully. *)
                                               (* This probably means invalidating everything.... *)
-                                              | NONE => raise Fail "Sqlcache: addFlushing (a)"))
+                                              | NONE => raise Fail "Sqlcache: addFlushing (a)")
                                   (SIMM.findList (tableToIndices, tableOfDml dmlParsed)))
                       | NONE => NONE
             in
                 case inval of
                     (* TODO: fail more gracefully. *)
-                    NONE => raise Fail "Sqlcache: addFlushing (b)"
+                    NONE => (Print.preface ("DML", MonoPrint.p_exp MonoEnv.empty dmlText);
+                             raise Fail "Sqlcache: addFlushing (b)")
                   | SOME invs => sequence (flushes invs @ [dmlExp])
             end
           | e' => e'
@@ -1723,8 +1724,9 @@ fun go file =
         (* Important that this happens after [MonoFooify.urlify] calls! *)
         val fmDecls = MonoFooify.getNewFmDecls ()
         val () = Sql.sqlcacheMode := false
+        val file = insertAfterDatatypes (file, rev fmDecls)
     in
-        insertAfterDatatypes (file, rev fmDecls)
+        MonoReduce.reduce file
     end
 
 end

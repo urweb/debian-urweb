@@ -118,6 +118,7 @@ fun make' {prefix, dirname, guided} =
             filterRequest = #filterRequest combined @ #filterRequest urp,
             filterResponse = #filterResponse combined @ #filterResponse urp,
             filterEnv = #filterEnv combined @ #filterEnv urp,
+            filterMeta = #filterMeta combined @ #filterMeta urp,
             protocol = mergeWith #2 (#protocol combined, #protocol urp),
             dbms = mergeWith #2 (#dbms combined, #dbms urp),
             sigFile = mergeWith #2 (#sigFile combined, #sigFile urp),
@@ -318,12 +319,13 @@ fun make' {prefix, dirname, guided} =
                                                              Posix.FileSys.ST.mtime htmlSt)
                                                  end handle OS.SysErr _ => true
 
-                                             val cmd = "emacs --eval \"(progn "
+                                             val cmd = "emacs -no-init-file --eval \"(progn "
                                                        ^ "(global-font-lock-mode t) "
                                                        ^ "(add-to-list 'load-path \\\""
                                                        ^ !Settings.configSitelisp
                                                        ^ "/\\\") "
                                                        ^ "(load \\\"urweb-mode-startup\\\") "
+                                                       ^ "(load \\\"htmlize\\\") "
                                                        ^ "(urweb-mode) "
                                                        ^ "(find-file \\\""
                                                        ^ src
