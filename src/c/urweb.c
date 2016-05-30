@@ -505,7 +505,7 @@ struct uw_context {
 
   // Sqlcache.
   int numRecording, recordingCapacity;
-  int *recordingOffsets;
+  int *recordingOffsets, *scriptRecordingOffsets;
   uw_Sqlcache_Update *cacheUpdate;
   uw_Sqlcache_Update *cacheUpdateTail;
   uw_Sqlcache_Unlock *cacheUnlock;
@@ -597,6 +597,7 @@ uw_context uw_init(int id, uw_loggers *lg) {
   ctx->numRecording = 0;
   ctx->recordingCapacity = 0;
   ctx->recordingOffsets = malloc(0);
+  ctx->scriptRecordingOffsets = malloc(0);
   ctx->cacheUpdate = NULL;
   ctx->cacheUpdateTail = NULL;
 
@@ -670,6 +671,7 @@ void uw_free(uw_context ctx) {
   free(ctx->output_buffer);
 
   free(ctx->recordingOffsets);
+  free(ctx->scriptRecordingOffsets);
 
   free(ctx);
 }
@@ -1568,6 +1570,10 @@ uw_Basis_string uw_Basis_jsifyString(uw_context ctx, uw_Basis_string s) {
       strcpy(s2, "\\074");
       s2 += 4;
       break;
+    case '&':
+      strcpy(s2, "\\046");
+      s2 += 4;
+      break;
     default:
       if (isprint((int)c) || c >= 128)
         *s2++ = c;
@@ -1609,6 +1615,10 @@ uw_Basis_string uw_Basis_jsifyChar(uw_context ctx, uw_Basis_char c1) {
     strcpy(s2, "\\074");
     s2 += 4;
     break;
+  case '&':
+    strcpy(s2, "\\046");
+    s2 += 4;
+    break;
   default:
     if (isprint((int)c) || c >= 128)
       *s2++ = c;
@@ -1645,6 +1655,10 @@ uw_Basis_string uw_Basis_jsifyString_ws(uw_context ctx, uw_Basis_string s) {
       break;
     case '<':
       strcpy(s2, "\\074");
+      s2 += 4;
+      break;
+    case '&':
+      strcpy(s2, "\\046");
       s2 += 4;
       break;
     default:
@@ -1745,13 +1759,20 @@ void uw_recordingStart(uw_context ctx) {
   if (ctx->numRecording == ctx->recordingCapacity) {
     ++ctx->recordingCapacity;
     ctx->recordingOffsets = realloc(ctx->recordingOffsets, sizeof(int) * ctx->recordingCapacity);
+    ctx->scriptRecordingOffsets = realloc(ctx->scriptRecordingOffsets, sizeof(int) * ctx->recordingCapacity);
   }
   ctx->recordingOffsets[ctx->numRecording] = ctx->page.front - ctx->page.start;
+  ctx->scriptRecordingOffsets[ctx->numRecording] = ctx->script.front - ctx->script.start;
   ++ctx->numRecording;
 }
 
 char *uw_recordingRead(uw_context ctx) {
-  char *recording = ctx->page.start + ctx->recordingOffsets[--ctx->numRecording];
+  char *recording = ctx->page.start + ctx->recordingOffsets[ctx->numRecording-1];
+  return strdup(recording);
+}
+
+char *uw_recordingReadScript(uw_context ctx) {
+  char *recording = ctx->script.start + ctx->scriptRecordingOffsets[--ctx->numRecording];
   return strdup(recording);
 }
 
@@ -3814,6 +3835,34 @@ uw_Basis_string uw_Basis_checkEnvVar(uw_context ctx, uw_Basis_string s) {
     return NULL;
 }
 
+static int meta_format(const char *s) {
+  for (; *s; ++s)
+    if (!isalpha((int)*s) && *s != '-')
+      return 0;
+
+  return 1;
+}
+
+uw_Basis_string uw_Basis_blessMeta(uw_context ctx, uw_Basis_string s) {
+  if (!meta_format(s))
+    uw_error(ctx, FATAL, "Meta name \"%s\" contains invalid character", uw_Basis_htmlifyString(ctx, s));
+
+  if (ctx->app->check_meta(s))
+    return s;
+  else
+    uw_error(ctx, FATAL, "Disallowed meta name %s", uw_Basis_htmlifyString(ctx, s));
+}
+
+uw_Basis_string uw_Basis_checkMeta(uw_context ctx, uw_Basis_string s) {
+  if (!meta_format(s))
+    return NULL;
+
+  if (ctx->app->check_meta(s))
+    return s;
+  else
+    return NULL;
+}
+
 uw_Basis_string uw_Basis_getHeader(uw_context ctx, uw_Basis_string name) {
   return uw_Basis_requestHeader(ctx, name);
 }
@@ -3915,9 +3964,18 @@ static char *old_headers(uw_context ctx) {
   if (uw_buffer_used(&ctx->outHeaders) == 0)
     return NULL;
   else {
-    char *s = strchr(ctx->outHeaders.start, '\n');
+    char *s;
+    int is_good;
 
-    if (s == NULL || strncasecmp(s+1, "Content-type: ", 14))
+    if (strncasecmp(ctx->outHeaders.start, "Content-type: ", 14)) {
+      s = strchr(ctx->outHeaders.start, '\n');
+      is_good = !strncasecmp(s+1, "Content-type: ", 14);
+    } else {
+      s = ctx->outHeaders.start;
+      is_good = 1;
+    }
+
+    if (!is_good)
       return NULL;
     else {
       s = strchr(s+15, '\n');
@@ -4566,6 +4624,7 @@ static void uw_Sqlcache_freeValue(uw_Sqlcache_Value *value) {
   if (value) {
     free(value->result);
     free(value->output);
+    free(value->scriptOutput);
     free(value);
   }
 }

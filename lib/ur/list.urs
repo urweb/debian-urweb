@@ -105,3 +105,9 @@ val recToList : a ::: Type -> r ::: {Unit} -> folder r -> $(mapU a r) -> t a
 val drop : t ::: Type -> int -> list t -> list t
 val take : t ::: Type -> int -> list t -> list t
 val splitAt : t ::: Type -> int -> list t -> list t * list t
+
+(** Longest prefix of elements that satisfy a predicate, returned along with the remaining suffix *)
+val span : a ::: Type -> (a -> bool) -> t a -> t a * t a
+
+(** Group a list into maximal adjacent segments where all elements compare as equal, according to the provided predicate. *)
+val groupBy : a ::: Type -> (a -> a -> bool) -> t a -> t (t a)

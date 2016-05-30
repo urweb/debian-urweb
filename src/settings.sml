@@ -460,18 +460,21 @@ val mime = ref ([] : rule list)
 val request = ref ([] : rule list)
 val response = ref ([] : rule list)
 val env = ref ([] : rule list)
+val meta = ref ([] : rule list)
 
 fun setUrlRules ls = url := ls
 fun setMimeRules ls = mime := ls
 fun setRequestHeaderRules ls = request := ls
 fun setResponseHeaderRules ls = response := ls
 fun setEnvVarRules ls = env := ls
+fun setMetaRules ls = meta := ls
 
 fun getUrlRules () = !url
 fun getMimeRules () = !mime
 fun getRequestHeaderRules () = !request
 fun getResponseHeaderRules () = !response
 fun getEnvVarRules () = !env
+fun getMetaRules () = !meta
 
 fun check f rules s =
     let
@@ -500,11 +503,13 @@ val checkUrl = check (fn _ => true) url
 
 val validMime = CharVector.all (fn ch => Char.isAlphaNum ch orelse ch = #"/" orelse ch = #"-" orelse ch = #"." orelse ch = #"+")
 val validEnv = CharVector.all (fn ch => Char.isAlphaNum ch orelse ch = #"_" orelse ch = #".")
+val validMeta = CharVector.all (fn ch => Char.isAlpha ch orelse ch = #"-")
 
 val checkMime = check validMime mime
 val checkRequestHeader = check validMime request
 val checkResponseHeader = check validMime response
 val checkEnvVar = check validEnv env
+val checkMeta = check validMeta meta
 
 
 type protocol = {
@@ -621,7 +626,8 @@ type dbms = {
      falseString : string,
      onlyUnion : bool,
      nestedRelops : bool,
-     windowFunctions: bool
+     windowFunctions: bool,
+     supportsIsDistinctFrom : bool
 }
 
 val dbmses = ref ([] : dbms list)
@@ -653,7 +659,8 @@ val curDb = ref ({name = "",
                   falseString = "",
                   onlyUnion = false,
                   nestedRelops = false,
-                  windowFunctions = false} : dbms)
+                  windowFunctions = false,
+                  supportsIsDistinctFrom = false} : dbms)
 
 fun addDbms v = dbmses := v :: !dbmses
 fun setDbms s =
@@ -950,6 +957,7 @@ fun reset () =
      request := [];
      response := [];
      env := [];
+     meta := [];
      debug := false;
      dbstring := NONE;
      exe := NONE;

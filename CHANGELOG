@@ -1,4 +1,20 @@
 ========
+20160515
+========
+
+- Support for HTML <meta> tags
+- Resource-integrity attributes for HTML <link>
+- Bug fixes and optimization improvements
+
+========
+20160306
+========
+
+- Allow '\r' in string and character literals
+- New standard library functions: List.span and List.groupBy
+- Bug fixes
+
+========
 20160213
 ========
 
