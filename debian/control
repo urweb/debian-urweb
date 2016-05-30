@@ -17,7 +17,7 @@ Build-Depends-Indep:
  emacs24 | emacsen,
  texlive-fonts-recommended,
  texlive-latex-extra
-Standards-Version: 3.9.6
+Standards-Version: 3.9.8
 Homepage: http://impredicative.com/ur/
 Vcs-Browser: https://github.com/urweb/debian-urweb
 Vcs-Git: https://github.com/urweb/debian-urweb.git
