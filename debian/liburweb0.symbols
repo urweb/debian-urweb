@@ -19,6 +19,7 @@ liburweb.so.0 liburweb0 #MINVER#
  uw_Basis_bless@Base 20150214
  uw_Basis_blessData@Base 20150214
  uw_Basis_blessEnvVar@Base 20150214
+ uw_Basis_blessMeta@Base 20160515
  uw_Basis_blessMime@Base 20150214
  uw_Basis_blessRequestHeader@Base 20150214
  uw_Basis_blessResponseHeader@Base 20150214
@@ -27,6 +28,7 @@ liburweb.so.0 liburweb0 #MINVER#
  uw_Basis_ceil@Base 20150214
  uw_Basis_charToString@Base 20150214
  uw_Basis_checkEnvVar@Base 20150214
+ uw_Basis_checkMeta@Base 20160515
  uw_Basis_checkMime@Base 20150214
  uw_Basis_checkRequestHeader@Base 20150214
  uw_Basis_checkResponseHeader@Base 20150214
@@ -289,6 +291,7 @@ liburweb.so.0 liburweb0 #MINVER#
  uw_really_send@Base 20150214
  uw_really_write@Base 20150214
  uw_recordingRead@Base 20151220
+ uw_recordingReadScript@Base 20160515
  uw_recordingStart@Base 20151220
  uw_redirect@Base 20150214
  uw_register_transactional@Base 20150214
