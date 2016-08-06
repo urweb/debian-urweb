@@ -4517,6 +4517,54 @@ uw_Basis_int uw_Basis_round(uw_context ctx, uw_Basis_float n) {
   return round(n);
 }
 
+uw_Basis_int uw_Basis_floor(uw_context ctx, uw_Basis_float n) {
+  return floor(n);
+}
+
+uw_Basis_float uw_Basis_pow(uw_context ctx, uw_Basis_float n, uw_Basis_float m) {
+  return pow(n,m);
+}
+
+uw_Basis_float uw_Basis_sqrt(uw_context ctx, uw_Basis_float n) {
+  return sqrt(n);
+}
+
+uw_Basis_float uw_Basis_sin(uw_context ctx, uw_Basis_float n) {
+  return sin(n);
+}
+
+uw_Basis_float uw_Basis_cos(uw_context ctx, uw_Basis_float n) {
+  return cos(n);
+}
+
+uw_Basis_float uw_Basis_log(uw_context ctx, uw_Basis_float n) {
+  return log(n);
+}
+
+uw_Basis_float uw_Basis_exp(uw_context ctx, uw_Basis_float n) {
+  return exp(n);
+}
+
+uw_Basis_float uw_Basis_asin(uw_context ctx, uw_Basis_float n) {
+  return asin(n);
+}
+
+uw_Basis_float uw_Basis_acos(uw_context ctx, uw_Basis_float n) {
+  return acos(n);
+}
+
+uw_Basis_float uw_Basis_atan(uw_context ctx, uw_Basis_float n) {
+  return atan(n);
+}
+
+uw_Basis_float uw_Basis_atan2(uw_context ctx, uw_Basis_float n, uw_Basis_float m) {
+  return atan2(n, m);
+}
+
+uw_Basis_float uw_Basis_abs(uw_context ctx, uw_Basis_float n) {
+  return fabs(n);
+}
+
 uw_Basis_string uw_Basis_atom(uw_context ctx, uw_Basis_string s) {
   char *p;
 
@@ -4713,7 +4761,7 @@ uw_Sqlcache_Value *uw_Sqlcache_check(uw_context ctx, uw_Sqlcache_Cache *cache, c
   char *key = uw_Sqlcache_allocKeyBuffer(keys, numKeys);
   char *buf = key;
   time_t timeInvalid = cache->timeInvalid;
-  uw_Sqlcache_Entry *entry;
+  uw_Sqlcache_Entry *entry = NULL;
   if (numKeys == 0) {
     entry = cache->table;
     if (!entry) {
@@ -4748,7 +4796,7 @@ static void uw_Sqlcache_storeCommitOne(uw_Sqlcache_Cache *cache, char **keys, uw
   pthread_rwlock_wrlock(&cache->lockIn);
   size_t numKeys = cache->numKeys;
   time_t timeNow = uw_Sqlcache_getTimeNow(cache);
-  uw_Sqlcache_Entry *entry;
+  uw_Sqlcache_Entry *entry = NULL;
   if (numKeys == 0) {
     entry = cache->table;
     if (!entry) {
@@ -4919,4 +4967,11 @@ void uw_Sqlcache_flush(uw_context ctx, uw_Sqlcache_Cache *cache, char **keys) {
     uw_Sqlcache_delete(cache, entry);
   }
   pthread_rwlock_unlock(&cache->lockIn);
+}
+
+int strcmp_nullsafe(const char *str1, const char *str2) {
+  if (str1)
+    return strcmp(str1, str2);
+  else
+    return 1;
 }
