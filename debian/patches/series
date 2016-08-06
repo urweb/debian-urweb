@@ -1,3 +1,4 @@
 harden.diff
 doc-letterpaper.diff
 use-system-uthash.diff
+export-fewer-symbols.diff

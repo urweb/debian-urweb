@@ -1,5 +1,4 @@
 liburweb_fastcgi.so.0 liburweb-fastcgi0 #MINVER#
- fastcgi_send_normal@Base 20150214
  main@Base 20150214
  uw_copy_client_data@Base 20150214
  uw_do_expunge@Base 20150214

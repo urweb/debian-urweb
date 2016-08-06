@@ -1,8 +1,13 @@
 liburweb.so.0 liburweb0 #MINVER#
  client_pruner@Base 20150214
- memmem@Base 20150214
  pthread_create_big@Base 20150214
+ strcmp_nullsafe@Base 20160805
+ uw_Basis_abs@Base 20160805
+ uw_Basis_acos@Base 20160805
  uw_Basis_addSeconds@Base 20150214
+ uw_Basis_asin@Base 20160805
+ uw_Basis_atan2@Base 20160805
+ uw_Basis_atan@Base 20160805
  uw_Basis_atom@Base 20150214
  uw_Basis_attrifyChannel@Base 20150214
  uw_Basis_attrifyChar@Base 20150214
@@ -36,6 +41,7 @@ liburweb.so.0 liburweb0 #MINVER#
  uw_Basis_chr@Base 20150214
  uw_Basis_clear_cookie@Base 20150214
  uw_Basis_clear_page@Base 20150214
+ uw_Basis_cos@Base 20160805
  uw_Basis_crypt@Base 20150214
  uw_Basis_css_url@Base 20150214
  uw_Basis_currentUrl@Base 20150214
@@ -54,6 +60,7 @@ liburweb.so.0 liburweb0 #MINVER#
  uw_Basis_ensqlBool@Base 20150214
  uw_Basis_ensqlTime@Base 20150214
  uw_Basis_eq_time@Base 20150214
+ uw_Basis_exp@Base 20160805
  uw_Basis_fieldName@Base 20150214
  uw_Basis_fieldValue@Base 20150214
  uw_Basis_fileData@Base 20150214
@@ -62,6 +69,7 @@ liburweb.so.0 liburweb0 #MINVER#
  uw_Basis_firstFormField@Base 20150214
  uw_Basis_floatFromInt@Base 20150214
  uw_Basis_floatToString@Base 20150214
+ uw_Basis_floor@Base 20160805
  uw_Basis_fresh@Base 20150214
  uw_Basis_fromDatetime@Base 20150214
  uw_Basis_fromMilliseconds@Base 20151122
@@ -103,6 +111,7 @@ liburweb.so.0 liburweb0 #MINVER#
  uw_Basis_jsifyString_ws@Base 20150214
  uw_Basis_jsifyTime@Base 20150214
  uw_Basis_le_time@Base 20150214
+ uw_Basis_log@Base 20160805
  uw_Basis_lt_time@Base 20150214
  uw_Basis_makeSigString@Base 20150214
  uw_Basis_maybe_onload@Base 20150214
@@ -116,6 +125,7 @@ liburweb.so.0 liburweb0 #MINVER#
  uw_Basis_ord@Base 20150214
  uw_Basis_postData@Base 20150214
  uw_Basis_postType@Base 20150214
+ uw_Basis_pow@Base 20160805
  uw_Basis_property@Base 20150214
  uw_Basis_rand@Base 20150214
  uw_Basis_readUtc@Base 20150214
@@ -128,6 +138,7 @@ liburweb.so.0 liburweb0 #MINVER#
  uw_Basis_set_client_source@Base 20150214
  uw_Basis_set_cookie@Base 20150214
  uw_Basis_sigString@Base 20150214
+ uw_Basis_sin@Base 20160805
  uw_Basis_sqlifyBlob@Base 20150214
  uw_Basis_sqlifyBool@Base 20150214
  uw_Basis_sqlifyBoolN@Base 20150214
@@ -142,6 +153,7 @@ liburweb.so.0 liburweb0 #MINVER#
  uw_Basis_sqlifyStringN@Base 20150214
  uw_Basis_sqlifyTime@Base 20150214
  uw_Basis_sqlifyTimeN@Base 20150214
+ uw_Basis_sqrt@Base 20160805
  uw_Basis_str1@Base 20150214
  uw_Basis_strcat@Base 20150214
  uw_Basis_strchr@Base 20150214

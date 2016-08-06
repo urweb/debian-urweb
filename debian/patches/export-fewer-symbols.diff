@@ -1,0 +1,24 @@
+From: Benjamin Barenblat <bbaren@mit.edu
+Description: Export fewer symbols
+Origin: upstream, https://github.com/urweb/urweb/commit/06cb0a88e1df0d4c84427786a9d04f7a75856854
+Bug: https://github.com/urweb/urweb/issues/43
+--- a/src/c/Makefile.am
++++ b/src/c/Makefile.am
+@@ -7,10 +7,15 @@ liburweb_fastcgi_la_SOURCES = fastcgi.c
+ liburweb_static_la_SOURCES = static.c
+ 
+ AM_CPPFLAGS = -I$(srcdir)/../../include/urweb $(OPENSSL_INCLUDES)
+-AM_CFLAGS = -Wimplicit -Wall -Werror -Wno-deprecated-declarations $(PTHREAD_CFLAGS)
+-liburweb_la_LDFLAGS = $(AM_LDFLAGS) $(OPENSSL_LDFLAGS)
++AM_CFLAGS = -Wimplicit -Wall -Werror -Wno-format-security -Wno-deprecated-declarations -U_FORTIFY_SOURCE $(PTHREAD_CFLAGS)
++liburweb_la_LDFLAGS = $(AM_LDFLAGS) $(OPENSSL_LDFLAGS) \
++	-export-symbols-regex '^(client_pruner|pthread_create_big|strcmp_nullsafe|uw_.*)'
+ liburweb_la_LIBADD = $(PTHREAD_LIBS) -lm $(OPENSSL_LIBS)
+ liburweb_http_la_LIBADD = liburweb.la
++liburweb_http_la_LDFLAGS = -export-symbols-regex '^(main|uw_.*)'
+ liburweb_cgi_la_LIBADD = liburweb.la
++liburweb_cgi_la_LDFLAGS = -export-symbols-regex '^(main|uw_.*)'
+ liburweb_fastcgi_la_LIBADD = liburweb.la
++liburweb_fastcgi_la_LDFLAGS = -export-symbols-regex '^(main|uw_.*)'
+ liburweb_static_la_LIBADD = liburweb.la
++liburweb_static_la_LDFLAGS = -export-symbols-regex '^(main|uw_.*)'
