@@ -1,4 +1,22 @@
 ========
+20160805
+========
+
+- Compatibility fixes for C compilers and OpenSSL
+- Starting to change SQL functions to return results in most natural order
+  - Step 1: queryL
+- Bug fixes
+
+========
+20160621
+========
+
+- Client-side: detect session timeout and ask the user to reload
+- New Basis math functions: abs, acos, asin, atan, atan2, cos, exp, floor, log, pow, sqrt, sin
+- Compatibility fixes for newer C and SML compilers
+- Bug fixes
+
+========
 20160515
 ========
 
