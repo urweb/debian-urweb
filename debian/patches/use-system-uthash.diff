@@ -5,7 +5,7 @@ Forwarded: no
 Remove upstream’s vendored copy of uthash.
 --- a/include/urweb/types_cpp.h
 +++ b/include/urweb/types_cpp.h
-@@ -122,7 +122,7 @@ typedef struct {
+@@ -123,7 +123,7 @@ typedef struct {
  // Caching
  
  #include <pthread.h>
