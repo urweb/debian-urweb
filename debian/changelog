@@ -1,3 +1,10 @@
+urweb (20161022+dfsg-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Switch to MariaDB for MySQL support.
+
+ -- Benjamin Barenblat <bbaren@mit.edu>  Sun, 23 Oct 2016 14:39:06 -0400
+
 urweb (20160805+dfsg-1) unstable; urgency=medium
 
   * New upstream release. (Closes: #828587, #831088)
