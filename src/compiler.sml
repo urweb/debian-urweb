@@ -212,7 +212,7 @@ val parseUrs =
                    val fname = OS.FileSys.tmpName ()
                    val outf = TextIO.openOut fname
                    val () = TextIO.output (outf, "sig\n")
-                   val inf = TextIO.openIn filename
+                   val inf = FileIO.txtOpenIn filename
                    fun loop () =
                        case TextIO.inputLine inf of
                            NONE => ()
@@ -225,7 +225,7 @@ val parseUrs =
                    val () = (ErrorMsg.resetErrors ();
                              ErrorMsg.resetPositioning filename;
                              Lex.UserDeclarations.initialize ())
-	           val file = TextIO.openIn fname
+	           val file = FileIO.txtOpenIn fname
 	           fun get _ = TextIO.input file
 	           fun parseerror (s, p1, p2) = ErrorMsg.errorAt' (p1, p2) s
 	           val lexer = LrParser.Stream.streamify (Lex.makeLexer get)
@@ -251,7 +251,7 @@ val parseUr = {
                   val () = (ErrorMsg.resetErrors ();
                             ErrorMsg.resetPositioning filename;
                             Lex.UserDeclarations.initialize ())
-	          val file = TextIO.openIn filename
+	          val file = FileIO.txtOpenIn filename
 	          fun get _ = TextIO.input file
 	          fun parseerror (s, p1, p2) = ErrorMsg.errorAt' (p1, p2) s
 	          val lexer = LrParser.Stream.streamify (Lex.makeLexer get)
@@ -478,13 +478,15 @@ fun parseUrp' accLibs fname =
                      val thisPath = OS.Path.dir filename
 
                      val dir = OS.Path.dir filename
-                     fun opener () = TextIO.openIn (OS.Path.joinBaseExt {base = filename, ext = SOME "urp"})
+                     fun opener () = FileIO.txtOpenIn (OS.Path.joinBaseExt {base = filename, ext = SOME "urp"})
 
                      val inf = opener ()
 
                      fun hasSpaceLine () =
                          case inputCommentableLine inf of
                              Content s => s = "debug" orelse s = "profile"
+                                          orelse s = "html5" orelse s = "xhtml"
+                                          orelse s = "noMangleSql" orelse s = "lessSafeFfi"
                                           orelse CharVector.exists (fn ch => ch = #" " orelse ch = #"\t") s orelse hasSpaceLine ()
                            | EndOfFile => false
                            | OnlyComment => hasSpaceLine ()
@@ -890,6 +892,7 @@ fun parseUrp' accLibs fname =
                                    | "timeFormat" => Settings.setTimeFormat arg
                                    | "noMangleSql" => Settings.setMangleSql false
                                    | "html5" => Settings.setIsHtml5 true
+                                   | "xhtml" => Settings.setIsHtml5 false
                                    | "lessSafeFfi" => Settings.setLessSafeFfi true
 
                                    | "file" =>
