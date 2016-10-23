@@ -9,12 +9,14 @@ export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
 
 # Harden SML executables.  Do not build position-independent executables,
 # though; urweb depends on the MLton runtime, which is not built position-
-# independent in Debian.
+# independent in Debian (#837567).
 export DEB_BUILD_MAINT_OPTIONS := hardening=+all,-pie
 export MLTONARGS := \
 	-cc-opt "$(shell dpkg-buildflags --get CPPFLAGS) \
-		$(shell dpkg-buildflags --get CFLAGS)" \
-	-link-opt "$(shell dpkg-buildflags --get LDFLAGS)"
+		$(shell dpkg-buildflags --get CFLAGS) \
+		-no-pie" \
+	-link-opt "$(shell dpkg-buildflags --get LDFLAGS) \
+		-no-pie"
 
 %:
 	dh $@ --parallel --with autoreconf
