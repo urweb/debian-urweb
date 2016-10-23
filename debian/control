@@ -5,8 +5,8 @@ Maintainer: Benjamin Barenblat <bbaren@mit.edu>
 Build-Depends:
  curl,
  debhelper (>= 9),
+ default-libmysqlclient-dev,
  dh-autoreconf,
- libmysqlclient-dev,
  libpq-dev,
  libsqlite3-dev,
  libssl-dev,
@@ -27,7 +27,7 @@ Architecture: any
 Multi-Arch: foreign
 Pre-Depends: ${misc:Pre-Depends}
 Depends:
- libmysqlclient-dev,
+ default-libmysqlclient-dev,
  libpq-dev,
  libsqlite3-dev,
  libssl-dev,
