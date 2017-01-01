@@ -1,3 +1,9 @@
+urweb (20161022+dfsg-2) unstable; urgency=medium
+
+  * Build position-independent. (Closes: #844891)
+
+ -- Benjamin Barenblat <bbaren@mit.edu>  Sat, 31 Dec 2016 17:35:18 -0600
+
 urweb (20161022+dfsg-1) unstable; urgency=medium
 
   * New upstream release.

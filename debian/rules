@@ -7,16 +7,12 @@ DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 # Avoid overlinking and reduce library dependencies.
 export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
 
-# Harden SML executables.  Do not build position-independent executables,
-# though; urweb depends on the MLton runtime, which is not built position-
-# independent in Debian (#837567).
-export DEB_BUILD_MAINT_OPTIONS := hardening=+all,-pie
+# Harden SML executables.
+export DEB_BUILD_MAINT_OPTIONS := hardening=+all
 export MLTONARGS := \
 	-cc-opt "$(shell dpkg-buildflags --get CPPFLAGS) \
-		$(shell dpkg-buildflags --get CFLAGS) \
-		-no-pie" \
-	-link-opt "$(shell dpkg-buildflags --get LDFLAGS) \
-		-no-pie"
+		$(shell dpkg-buildflags --get CFLAGS)" \
+	-link-opt "$(shell dpkg-buildflags --get LDFLAGS)"
 
 %:
 	dh $@ --parallel --with autoreconf
