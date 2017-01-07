@@ -23,6 +23,11 @@ Copyright: 2009, 2010 Zmanda Inc. <http://www.zmanda.com/>
            2009, 2010 Dustin J. Mitchell <dustin@zmanda.com>
 License: AX-free
 
+Files: m4/ax_tls.m4
+Copyright: 2008 Alan Woodland <ajw05@aber.ac.uk>
+           2010 Diego Elio Petteno` <flameeyes@gmail.com>
+License: GPL-3+ with Autoconf exception
+
 Files: m4/m4_ax_pthread.m4
 Copyright: 2008 Steven G. Johnson <stevenj@alum.mit.edu>
            2011 Daniel Richard G. <skunk@iSKUNK.ORG>
