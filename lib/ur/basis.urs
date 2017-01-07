@@ -947,7 +947,8 @@ val img : bodyTag ([Alt = string, Src = url, Width = int, Height = int,
 
 val form : ctx ::: {Unit} -> bind ::: {Type}
            -> [[MakeForm, Form] ~ ctx] =>
-    option css_class
+    option id
+    -> option css_class
     -> xml ([Form] ++ ctx) [] bind
     -> xml ([MakeForm] ++ ctx) [] []
 
@@ -981,7 +982,7 @@ val hidden : formTag string [] [Data = data_attr, Id = string, Value = string]
 val textbox : formTag string [] ([Value = string, Size = int, Placeholder = string, Source = source string, Onchange = transaction unit,
                                   Ontext = transaction unit] ++ boxAttrs ++ inputAttrs)
 val password : formTag string [] ([Value = string, Size = int, Placeholder = string, Onchange = transaction unit] ++ boxAttrs ++ inputAttrs)
-val textarea : formTag string [] ([Rows = int, Cols = int, Onchange = transaction unit,
+val textarea : formTag string [] ([Rows = int, Cols = int, Placeholder = string, Onchange = transaction unit,
                                    Ontext = transaction unit] ++ boxAttrs ++ inputAttrs)
 
 val checkbox : formTag bool [] ([Checked = bool, Onchange = transaction unit] ++ boxAttrs)
@@ -1091,7 +1092,7 @@ val ccheckbox : cformTag ([Size = int, Source = source bool, Onchange = transact
 val cselect : cformTag ([Source = source string, Onchange = transaction unit] ++ boxAttrs) [Cselect]
 val coption : unit -> tag [Value = string, Selected = bool] [Cselect, Body] [] [] []
 
-val ctextarea : cformTag ([Rows = int, Cols = int, Source = source string, Onchange = transaction unit,
+val ctextarea : cformTag ([Rows = int, Cols = int, Placeholder = string, Source = source string, Onchange = transaction unit,
                            Ontext = transaction unit] ++ boxAttrs ++ inputAttrs) []
 
 (*** Tables *)
