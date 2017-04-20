@@ -28,6 +28,7 @@ Multi-Arch: foreign
 Pre-Depends: ${misc:Pre-Depends}
 Depends:
  default-libmysqlclient-dev,
+ gcc | c-compiler,
  libpq-dev,
  libsqlite3-dev,
  libssl-dev,
@@ -40,6 +41,7 @@ Depends:
  ${shlibs:Depends},
  ${misc:Depends}
 Recommends:
+ gcc,
  urweb-doc,
  urweb-mode
 Description: purely functional language for web programming
