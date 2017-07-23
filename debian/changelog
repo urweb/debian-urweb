@@ -1,8 +1,8 @@
-urweb (20170720+dfsg-1) UNRELEASED; urgency=medium
+urweb (20170720+dfsg-1) unstable; urgency=medium
 
   * New upstream release.
 
- -- Benjamin Barenblat <bbaren@mit.edu>  Sun, 23 Jul 2017 08:46:10 -0400
+ -- Benjamin Barenblat <bbaren@mit.edu>  Sun, 23 Jul 2017 09:50:04 -0400
 
 urweb (20170105+dfsg-2) unstable; urgency=medium
 
