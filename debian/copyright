@@ -1,4 +1,4 @@
-Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: Ur/Web
 Upstream-Contact: Adam Chlipala <adamc@csail.mit.edu>
 Source: http://hg.impredicative.com/urweb
