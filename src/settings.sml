@@ -346,7 +346,7 @@ val jsFuncsBase = basisM [("alert", "alert"),
                           ("asin", "asin"),
                           ("acos", "acos"),
                           ("atan", "atan"),
-                          ("atan2", "atan2"),                           
+                          ("atan2", "atan2"),
                           ("abs", "abs"),
 
                           ("now", "now"),
@@ -395,9 +395,15 @@ val jsFuncsBase = basisM [("alert", "alert"),
                           ("htmlifySpecialChar", "htmlifySpecialChar"),
                           ("chr", "chr")]
 val jsFuncs = ref jsFuncsBase
-fun setJsFuncs ls = jsFuncs := foldl (fn ((k, v), m) => M.insert (m, k, v)) jsFuncsBase ls
+val jsModule = ref (NONE : string option)
+fun setJsModule m = jsModule := m
+fun jsFuncName f =
+    case !jsModule of
+        SOME m => m ^ "." ^ f
+      | NONE => f
+fun setJsFuncs ls = jsFuncs := foldl (fn ((k, v), m) => M.insert (m, k, jsFuncName v)) jsFuncsBase ls
 fun jsFunc x = M.find (!jsFuncs, x)
-fun addJsFunc (k, v) = jsFuncs := M.insert (!jsFuncs, k, v)
+fun addJsFunc (k, v) = jsFuncs := M.insert (!jsFuncs, k, jsFuncName v)
 fun allJsFuncs () = M.listItemsi (!jsFuncs)
 
 datatype pattern_kind = Exact | Prefix
@@ -951,6 +957,10 @@ fun addJsFile LoadFromFilename =
 
 fun listJsFiles () = SM.listItems (!jsFiles)
 
+val jsOutput = ref (NONE : string option)
+fun setOutputJsFile so = jsOutput := so
+fun getOutputJsFile () = !jsOutput
+
 fun reset () =
     (Globals.setResetTime ();
      urlPrefixFull := "/";
@@ -996,6 +1006,7 @@ fun reset () =
      mimeTypes := NONE;
      files := SM.empty;
      jsFiles := SM.empty;
-     filePath := ".")
+     filePath := ".";
+     jsOutput := NONE)
 
 end

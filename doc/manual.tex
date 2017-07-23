@@ -155,6 +155,7 @@ Here is the complete list of directive forms.  ``FFI'' stands for ``foreign func
 \item \texttt{include FILENAME} adds \texttt{FILENAME} to the list of files to be \texttt{\#include}d in C sources.  This is most useful for interfacing with new FFI modules.
 \item \texttt{jsFile FILENAME} asks to serve the contents of a file as JavaScript.  All such content is concatenated into a single file, included via a \texttt{<script>} tag on every page that needs client-side scripting.
 \item \texttt{jsFunc Module.ident=name} gives the JavaScript name of an FFI value.
+\item \texttt{jsModule Module} helps make \texttt{jsFunc} directives less verbose, by setting a module name to prefix in front of \texttt{name} arguments (so running e.g. \texttt{jsFunc MyFfi.foo=bar} actually sets up \texttt{Mod.bar} as the JavaScript name for that function, if \texttt{jsModule Mod} was run beforehand).
 \item \texttt{library FILENAME} parses \texttt{FILENAME.urp} and merges its contents with the rest of the current file's contents.  If \texttt{FILENAME.urp} doesn't exist, the compiler also tries \texttt{FILENAME/lib.urp}.
 \item \texttt{limit class num} sets a resource usage limit for generated applications.  The limit \texttt{class} will be set to the non-negative integer \texttt{num}.  The classes are:
   \begin{itemize}
@@ -274,6 +275,8 @@ sqlite3 path/to/database/file <app.sql
 \item \texttt{-dumpSource}: When compilation fails, output to stderr the complete source code of the last intermediate program before the compilation phase that signaled the error.  (Warning: these outputs can be very long and aren't especially optimized for readability!)
 
 \item \texttt{-explainEmbed}: Trigger more verbose error messages about inability to embed server-side values in client-side code.
+
+\item \texttt{-js FILENAME}: Ur/Web applications with client-side code link in generated JavaScript files, which, by default, are assigned random-looking names.  Use this directive to override the filename chosen for the JavaScript code.  Be forewarned that the default method uses a name based on hashing the code itself, which is done for a good reason: browsers are very eager to cache JavaScript code, and application changes may fail to propagate quickly to browsers if this filename stays the same between versions.  In such cases, it isn't just that the user sees an old version of your application.  Instead, the application runs with a mix of old and new files, leading to arbitrary bugs that Ur/Web prevents, when used properly.
 
 \item \texttt{-limit class num}: Equivalent to the \texttt{limit} directive from \texttt{.urp} files
 
@@ -552,7 +555,7 @@ $$\begin{array}{rrcll}
   &&& \_ & \textrm{wildcard} \\
   &&& (e) & \textrm{explicit precedence} \\
   \\
-  \textrm{Local declarations} & ed &::=& \cd{val} \; x : \tau = e & \textrm{non-recursive value} \\
+  \textrm{Local declarations} & ed &::=& \cd{val} \; p = e & \textrm{non-recursive value} \\
   &&& \cd{val} \; \cd{rec} \; (x : \tau = e \; \cd{and})^+ & \textrm{mutually recursive values} \\
 \end{array}$$
 
@@ -563,7 +566,7 @@ $$\begin{array}{rrcll}
   \textrm{Declarations} & d &::=& \mt{con} \; x :: \kappa = c & \textrm{constructor synonym} \\
   &&& \mt{datatype} \; x \; x^* = dc\mid^+ & \textrm{algebraic datatype definition} \\
   &&& \mt{datatype} \; x = \mt{datatype} \; M.x & \textrm{algebraic datatype import} \\
-  &&& \mt{val} \; x : \tau = e & \textrm{value} \\
+  &&& \mt{val} \; p = e & \textrm{value} \\
   &&& \mt{val} \; \cd{rec} \; (x : \tau = e \; \mt{and})^+ & \textrm{mutually recursive values} \\
   &&& \mt{structure} \; X : S = M & \textrm{module definition} \\
   &&& \mt{signature} \; X = S & \textrm{signature definition} \\
