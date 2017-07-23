@@ -1,7 +1,7 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: Ur/Web
 Upstream-Contact: Adam Chlipala <adamc@csail.mit.edu>
-Source: http://hg.impredicative.com/urweb
+Source: https://github.com/urweb/urweb
 Copyright: 2008-2011 Adam Chlipala <adamc@csail.mit.edu>
 License: BSD-3-clause
 
