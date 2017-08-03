@@ -1,3 +1,10 @@
+urweb (20170720+dfsg-1.1) unstable; urgency=medium
+
+  * Non-maintainer upload.
+  * Bump build-dep emacs24 -> emacs25 (Closes: #870671).
+
+ -- Sean Whitton <spwhitton@spwhitton.name>  Thu, 03 Aug 2017 18:54:05 -0400
+
 urweb (20170720+dfsg-1) unstable; urgency=medium
 
   * New upstream release.

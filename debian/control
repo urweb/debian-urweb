@@ -14,7 +14,7 @@ Build-Depends:
  sqlite3,
  uthash-dev
 Build-Depends-Indep:
- emacs24 | emacsen,
+ emacs25 | emacsen,
  texlive-fonts-recommended,
  texlive-latex-extra
 Standards-Version: 4.0.0
