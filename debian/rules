@@ -7,6 +7,10 @@ DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 # Avoid overlinking and reduce library dependencies.
 export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
 
+# Disable GCC code hoisting to work around either a GCC bug or a MLton bug on
+# arm64 and mips64el. See https://bugs.debian.org/871572 for details.
+export DEB_CFLAGS_MAINT_APPEND := -fno-code-hoisting
+
 # Harden SML executables.
 export DEB_BUILD_MAINT_OPTIONS := hardening=+all
 export MLTONARGS := \
