@@ -482,6 +482,11 @@ fun isFile (t : typ) =
         TFfi ("Basis", "file") => true
       | _ => false
 
+fun isString (t : typ) =
+    case #1 t of
+        TFfi ("Basis", "string") => true
+      | _ => false
+
 fun p_sql_type t = string (Settings.p_sql_ctype t)
 
 fun getPargs (e, _) =
@@ -654,7 +659,16 @@ fun unurlify fromClient env (t, loc) =
                                  doEm rest,
                                  string ")"]
                 in
-                    doEm xncs
+                    box [string "(",
+                         string request,
+                         string "[0] == '/' ? ++",
+                         string request,
+                         string " : ",
+                         string request,
+                         string ",",
+                         newline,
+                         doEm xncs,
+                         string ")"]
                 end
 
               | TDatatype (Option, i, xncs) =>
@@ -2181,6 +2195,25 @@ and p_exp' par tail env (e, loc) =
                                                        string ";"])
                                       inputs,
                           newline,
+                          case Settings.getFileCache () of
+                              NONE => box []
+                            | SOME _ =>
+                              p_list_sepi newline
+                                          (fn i => fn (_, t) =>
+                                              case t of
+                                                  Settings.Blob =>
+                                                  box [string "uw_Basis_cache_file(ctx, arg",
+                                                       string (Int.toString (i + 1)),
+                                                       string ");"]
+                                                | Settings.Nullable Settings.Blob =>
+                                                  box [string "if (arg",
+                                                       string (Int.toString (i + 1)),
+                                                       string ") uw_Basis_cache_file(ctx, arg",
+                                                       string (Int.toString (i + 1)),
+                                                       string ");"]
+                                                | _ => box [])
+                                          inputs,
+                          newline,
                           string "uw_ensure_transaction(ctx);",
                           newline,
                           newline,
@@ -2789,7 +2822,7 @@ fun p_file env (ds, ps) =
                              string "}"]
                 end
 
-        fun getInput (x, t) =
+        fun getInput includesFile (x, t) =
             let
                 val n = case SM.find (fnums, x) of
                             NONE => raise Fail ("CjrPrint: Can't find " ^ x ^ " in fnums")
@@ -2839,7 +2872,7 @@ fun p_file env (ds, ps) =
                                                   xts,
                                        newline,
                                        p_list_sep (box []) (fn (x, t) =>
-                                                               box [getInput (x, t),
+                                                               box [getInput includesFile (x, t),
                                                                     string "result.__uwf_",
                                                                     string x,
                                                                     space,
@@ -2902,7 +2935,7 @@ fun p_file env (ds, ps) =
                                                        xts,
                                             newline,
                                             p_list_sep (box []) (fn (x, t) =>
-                                                                    box [getInput (x, t),
+                                                                    box [getInput includesFile (x, t),
                                                                          string "result->__uwf_1.__uwf_",
                                                                          string x,
                                                                          space,
@@ -2955,7 +2988,10 @@ fun p_file env (ds, ps) =
                               space,
                               string "=",
                               space,
-                              unurlify true env t,
+                              if includesFile andalso isString t then
+                                  string "request"
+                              else
+                                  unurlify true env t,
                               string ";",
                               newline]
             end
@@ -2975,6 +3011,7 @@ fun p_file env (ds, ps) =
                              (TRecord i, _) =>
                              let
                                  val xts = E.lookupStruct env i
+                                 val includesFile = List.exists (fn (_, t) => isFile t) xts
                              in
                                  (List.take (ts, length ts - 2),
                                   box [box (map (fn (x, t) => box [p_typ env t,
@@ -2984,7 +3021,7 @@ fun p_file env (ds, ps) =
                                                                    string ";",
                                                                    newline]) xts),
                                        newline,
-                                       box (map getInput xts),
+                                       box (map (getInput includesFile) xts),
                                        case i of
                                            0 => string "uw_unit uw_inputs;"
                                          | _ => box [string "struct __uws_",
@@ -3665,7 +3702,10 @@ fun p_file env (ds, ps) =
                          "uw_input_num", "uw_cookie_sig", "uw_check_url", "uw_check_mime", "uw_check_requestHeader", "uw_check_responseHeader", "uw_check_envVar", "uw_check_meta",
                          case onError of NONE => "NULL" | SOME _ => "uw_onError", "my_periodics",
                          "\"" ^ Prim.toCString (Settings.getTimeFormat ()) ^ "\"",
-                         if Settings.getIsHtml5 () then "1" else "0"],
+                         if Settings.getIsHtml5 () then "1" else "0",
+                         (case Settings.getFileCache () of
+                              NONE => "NULL"
+                            | SOME s => "\"" ^ Prim.toCString s ^ "\"")],
              string "};",
              newline]
     end

@@ -64,9 +64,11 @@ type job = {
      protocol : string option,
      dbms : string option,
      sigFile : string option,
+     fileCache : string option,
      safeGets : string list,
      onError : (string * string list * string) option,
-     minHeap : int
+     minHeap : int,
+     mimeTypes : string option
 }
 
 type ('src, 'dst) phase = {
@@ -386,7 +388,9 @@ fun institutionalizeJob (job : job) =
      Settings.setSafeGets (#safeGets job);
      Settings.setOnError (#onError job);
      Settings.setMinHeap (#minHeap job);
-     Settings.setSigFile (#sigFile job))
+     Settings.setSigFile (#sigFile job);
+     Settings.setFileCache (#fileCache job);
+     Settings.setMimeFilePath (Option.getOpt (#mimeTypes job, "/etc/mime.types")))
 
 datatype commentableLine =
          EndOfFile
@@ -465,9 +469,11 @@ fun parseUrp' accLibs fname =
                         protocol = NONE,
                         dbms = NONE,
                         sigFile = NONE,
+                        fileCache = NONE,
                         safeGets = [],
                         onError = NONE,
-                        minHeap = 0}
+                        minHeap = 0,
+                        mimeTypes = NONE}
          in
              institutionalizeJob job;
              {Job = job, Libs = []}
@@ -598,9 +604,11 @@ fun parseUrp' accLibs fname =
                      val protocol = ref NONE
                      val dbms = ref NONE
                      val sigFile = ref (Settings.getSigFile ())
+                     val fileCache = ref (Settings.getFileCache ())
                      val safeGets = ref []
                      val onError = ref NONE
                      val minHeap = ref 0
+                     val mimeTypes = ref NONE
 
                      fun finish sources =
                          let
@@ -636,9 +644,11 @@ fun parseUrp' accLibs fname =
                                  protocol = !protocol,
                                  dbms = !dbms,
                                  sigFile = !sigFile,
+                                 fileCache = !fileCache,
                                  safeGets = rev (!safeGets),
                                  onError = !onError,
-                                 minHeap = !minHeap
+                                 minHeap = !minHeap,
+                                 mimeTypes = !mimeTypes
                              }
 
                              fun mergeO f (old, new) =
@@ -697,9 +707,11 @@ fun parseUrp' accLibs fname =
                                  protocol = mergeO #2 (#protocol old, #protocol new),
                                  dbms = mergeO #2 (#dbms old, #dbms new),
                                  sigFile = mergeO #2 (#sigFile old, #sigFile new),
+                                 fileCache = mergeO #2 (#fileCache old, #fileCache new),
                                  safeGets = #safeGets old @ #safeGets new,
                                  onError = mergeO #2 (#onError old, #onError new),
-                                 minHeap = Int.max (#minHeap old, #minHeap new)
+                                 minHeap = Int.max (#minHeap old, #minHeap new),
+                                 mimeTypes = mergeO #2 (#mimeTypes old, #mimeTypes new)
                              }
                          in
                              if accLibs then
@@ -783,6 +795,10 @@ fun parseUrp' accLibs fname =
                                    | "sigfile" =>
                                      (case !sigFile of
                                           NONE => sigFile := SOME arg
+                                        | SOME _ => ())
+                                   | "filecache" =>
+                                     (case !fileCache of
+                                          NONE => fileCache := SOME arg
                                         | SOME _ => ())
                                    | "exe" =>
                                      (case !exe of
@@ -914,13 +930,20 @@ fun parseUrp' accLibs fname =
                                    | "html5" => Settings.setIsHtml5 true
                                    | "xhtml" => Settings.setIsHtml5 false
                                    | "lessSafeFfi" => Settings.setLessSafeFfi true
+                                   | "mimeTypes" => Settings.setMimeFilePath (relify arg)
 
                                    | "file" =>
                                      (case String.fields Char.isSpace arg of
-                                          [uri, fname] => (Settings.setFilePath thisPath;
-                                                           Settings.addFile {Uri = uri,
-                                                                             LoadFromFilename = fname};
-                                                           url := {action = Settings.Allow, kind = Settings.Exact, pattern = uri} :: !url)
+                                          uri :: fname :: rest =>
+                                          (Settings.setFilePath thisPath;
+                                           Settings.addFile {Uri = uri,
+                                                             LoadFromFilename = fname,
+                                                             MimeType = case rest of
+                                                                            [] => NONE
+                                                                          | [ty] => SOME ty
+                                                                          | _ => (ErrorMsg.error "Bad 'file' arguments";
+                                                                                  NONE)};
+                                           url := {action = Settings.Allow, kind = Settings.Exact, pattern = uri} :: !url)
                                         | _ => ErrorMsg.error "Bad 'file' arguments")
 
                                    | "jsFile" =>
@@ -1500,6 +1523,13 @@ val sigcheck = {
 
 val toSigcheck = transform sigcheck "sigcheck" o toSidecheck
 
+val filecache = {
+    func = FileCache.instrument,
+    print = MonoPrint.p_file MonoEnv.empty
+}
+
+val toFilecache = transform filecache "filecache" o toSigcheck
+
 val sqlcache = {
     func = (fn file =>
                if Settings.getSqlcache ()
@@ -1508,7 +1538,7 @@ val sqlcache = {
     print = MonoPrint.p_file MonoEnv.empty
 }
 
-val toSqlcache = transform sqlcache "sqlcache" o toSigcheck
+val toSqlcache = transform sqlcache "sqlcache" o toFilecache
 
 val cjrize = {
     func = Cjrize.cjrize,

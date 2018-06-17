@@ -646,7 +646,8 @@ type dbms = {
      onlyUnion : bool,
      nestedRelops : bool,
      windowFunctions: bool,
-     supportsIsDistinctFrom : bool
+     supportsIsDistinctFrom : bool,
+     supportsSHA512 : bool
 }
 
 val dbmses = ref ([] : dbms list)
@@ -679,7 +680,8 @@ val curDb = ref ({name = "",
                   onlyUnion = false,
                   nestedRelops = false,
                   windowFunctions = false,
-                  supportsIsDistinctFrom = false} : dbms)
+                  supportsIsDistinctFrom = false,
+                  supportsSHA512 = false} : dbms)
 
 fun addDbms v = dbmses := v :: !dbmses
 fun setDbms s =
@@ -723,6 +725,15 @@ fun getDeadlines () = !deadlines
 val sigFile = ref (NONE : string option)
 fun setSigFile v = sigFile := v
 fun getSigFile () = !sigFile
+
+val fileCache = ref (NONE : string option)
+fun setFileCache v =
+    (if Option.isSome v andalso not (#supportsSHA512 (currentDbms ())) then
+         ErrorMsg.error "The selected database engine is incompatible with file caching."
+     else
+        ();
+     fileCache := v)
+fun getFileCache () = !fileCache
 
 structure SS = BinarySetFn(struct
                            type ord_key = string
@@ -843,14 +854,17 @@ structure SM = BinaryMapFn(struct
 
 val noMimeFile = ref false
 
+val mimeFilePath = ref "/etc/mime.types"
+fun setMimeFilePath file = mimeFilePath := file
+
 fun noMime () =
-    (TextIO.output (TextIO.stdErr, "WARNING: Error opening /etc/mime.types.  Static files will be served with no suggested MIME types.\n");
+    (TextIO.output (TextIO.stdErr, "WARNING: Error opening " ^ !mimeFilePath ^ ".  Static files will be served with no suggested MIME types.\n");
      noMimeFile := true;
      SM.empty)
 
 fun readMimeTypes () =
     let
-        val inf = FileIO.txtOpenIn "/etc/mime.types"
+        val inf = FileIO.txtOpenIn (!mimeFilePath)
 
         fun loop m =
             case TextIO.inputLine inf of
@@ -908,9 +922,10 @@ val filePath = ref "."
 
 fun setFilePath path = filePath := path
 
-fun addFile {Uri, LoadFromFilename} =
+fun addFile {Uri, LoadFromFilename, MimeType} =
     let
         val path = OS.Path.concat (!filePath, LoadFromFilename)
+                   handle Path => LoadFromFilename
     in
         case SM.find (!files, Uri) of
             SOME (path', _) =>
@@ -926,7 +941,9 @@ fun addFile {Uri, LoadFromFilename} =
                                     Uri,
                                     (path,
                                      {Uri = Uri,
-                                      ContentType = mimeTypeOf path,
+                                      ContentType = case MimeType of
+                                                        NONE => mimeTypeOf path
+                                                      | _ => MimeType,
                                       LastModified = OS.FileSys.modTime path,
                                       Bytes = BinIO.inputAll inf}));
                 BinIO.closeIn inf

@@ -358,8 +358,6 @@ uw_Basis_string uw_Basis_timef(struct uw_context *, const char *fmt, uw_Basis_ti
 uw_Basis_time uw_Basis_stringToTimef(struct uw_context *, const char *fmt, uw_Basis_string);
 uw_Basis_time uw_Basis_stringToTimef_error(struct uw_context *, const char *fmt, uw_Basis_string);
 
-uw_Basis_string uw_Basis_crypt(struct uw_context *, uw_Basis_string key, uw_Basis_string salt);
-
 uw_Basis_bool uw_Basis_eq_time(struct uw_context *, uw_Basis_time, uw_Basis_time);
 uw_Basis_bool uw_Basis_lt_time(struct uw_context *, uw_Basis_time, uw_Basis_time);
 uw_Basis_bool uw_Basis_le_time(struct uw_context *, uw_Basis_time, uw_Basis_time);
@@ -431,5 +429,9 @@ void *uw_Sqlcache_store(struct uw_context *, uw_Sqlcache_Cache *, char **, uw_Sq
 void *uw_Sqlcache_flush(struct uw_context *, uw_Sqlcache_Cache *, char **);
 
 int strcmp_nullsafe(const char *, const char *);
+
+uw_unit uw_Basis_cache_file(struct uw_context *, uw_Basis_blob contents);
+uw_Basis_blob uw_Basis_check_filecache(struct uw_context *, uw_Basis_string hash);
+uw_Basis_bool uw_Basis_filecache_missed(struct uw_context *);
 
 #endif

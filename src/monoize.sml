@@ -1792,18 +1792,21 @@ fun monoExp (env, st, fm) (all as (e, loc)) =
                                                                   NONE), loc),
                                                         str "")],
                                                       {disc = b, result = s}), loc),
-                                           strcatComma (map (fn (x, t) =>
-                                                                strcat [
-                                                                (L'.EField (gf "SelectExps", x), loc),
-                                                                str (" AS " ^ Settings.mangleSql x)
-                                                            ]) sexps
-                                                        @ map (fn (x, xts) =>
-                                                                  strcatComma
-                                                                      (map (fn (x', _) =>
-                                                                               str ("T_" ^ x
-										   ^ "."
-										   ^ Settings.mangleSql x'))
-                                                                           xts)) stables),
+                                           if List.null sexps andalso List.all (List.null o #2) stables then
+                                               str "0"
+                                           else
+                                               strcatComma (map (fn (x, t) =>
+                                                                    strcat [
+                                                                        (L'.EField (gf "SelectExps", x), loc),
+                                                                        str (" AS " ^ Settings.mangleSql x)
+                                                                ]) sexps
+                                                            @ map (fn (x, xts) =>
+                                                                      strcatComma
+                                                                          (map (fn (x', _) =>
+                                                                                   str ("T_" ^ x
+										        ^ "."
+										        ^ Settings.mangleSql x'))
+                                                                               xts)) stables),
                                            (L'.ECase (gf "From",
                                                       [((L'.PPrim (Prim.String (Prim.Normal, "")), loc),
                                                         str ""),
@@ -3067,7 +3070,7 @@ fun monoExp (env, st, fm) (all as (e, loc)) =
                                              | _ => (attrs, NONE)
 
 
-                val dynamics = ["dyn", "ctextbox", "cpassword", "ccheckbox", "cselect", "coption", "ctextarea", "active", "script", "cemail", "csearch", "curl", "ctel", "ccolor"]
+                val dynamics = ["dyn", "ctextbox", "cpassword", "ccheckbox", "cradio", "cselect", "coption", "ctextarea", "active", "script", "cemail", "csearch", "curl", "ctel", "ccolor"]
 
                 fun isSome (e, _) =
                     case e of
@@ -3279,6 +3282,10 @@ fun monoExp (env, st, fm) (all as (e, loc)) =
                                      (fn ("Source", _, _) => NONE
                                        | ("Onchange", e, _) =>
                                          SOME (strcat [str "addOnChange(d,exec(",
+                                                       (L'.EJavaScript (L'.Script, e), loc),
+                                                       str "));"])
+                                       | ("Oninput", e, _) =>
+                                         SOME (strcat [str "addOnInput(d,exec(",
                                                        (L'.EJavaScript (L'.Script, e), loc),
                                                        str "));"])
                                        | (x, e, (L'.TFun ((L'.TRecord [], _), _), _)) =>
@@ -3553,6 +3560,8 @@ fun monoExp (env, st, fm) (all as (e, loc)) =
                       | "ctime" => cinput ("time", "time")
 
                       | "ccheckbox" => cinput ("checkbox", "chk")
+                      | "cradio" => cinput ("radio", "crad")
+
                       | "cselect" =>
 			(case List.find (fn ("Source", _, _) => true | _ => false) attrs of
                              NONE =>

@@ -60,9 +60,11 @@ signature COMPILER = sig
          protocol : string option,
          dbms : string option,
          sigFile : string option,
+         fileCache : string option,
          safeGets : string list,
          onError : (string * string list * string) option,
-         minHeap : int
+         minHeap : int,
+         mimeTypes : string option
     }
     val compile : string -> bool
     val compiler : string -> unit
@@ -124,6 +126,7 @@ signature COMPILER = sig
     val pathcheck : (Mono.file, Mono.file) phase
     val sidecheck : (Mono.file, Mono.file) phase
     val sigcheck : (Mono.file, Mono.file) phase
+    val filecache : (Mono.file, Mono.file) phase
     val sqlcache : (Mono.file, Mono.file) phase
     val cjrize : (Mono.file, Cjr.file) phase
     val prepare : (Cjr.file, Cjr.file) phase
@@ -190,6 +193,7 @@ signature COMPILER = sig
     val toPathcheck : (string, Mono.file) transform
     val toSidecheck : (string, Mono.file) transform
     val toSigcheck : (string, Mono.file) transform
+    val toFilecache : (string, Mono.file) transform
     val toSqlcache : (string, Mono.file) transform
     val toCjrize : (string, Cjr.file) transform
     val toPrepare : (string, Cjr.file) transform

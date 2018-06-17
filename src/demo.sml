@@ -123,9 +123,11 @@ fun make' {prefix, dirname, guided} =
             protocol = mergeWith #2 (#protocol combined, #protocol urp),
             dbms = mergeWith #2 (#dbms combined, #dbms urp),
             sigFile = mergeWith #2 (#sigFile combined, #sigFile urp),
+            fileCache = mergeWith #2 (#fileCache combined, #fileCache urp),
             safeGets = #safeGets combined @ #safeGets urp,
             onError = NONE,
-            minHeap = 0
+            minHeap = 0,
+            mimeTypes = mergeWith #2 (#mimeTypes combined, #mimeTypes urp)
         }
 
         val parse = Compiler.run (Compiler.transform Compiler.parseUrp "Demo parseUrp")

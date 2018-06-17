@@ -42,6 +42,8 @@ val filter : a ::: Type -> (a -> bool) -> t a -> t a
 
 val exists : a ::: Type -> (a -> bool) -> t a -> bool
 
+val existsM : m ::: (Type -> Type) -> monad m -> a ::: Type -> (a -> m bool) -> t a -> m bool
+
 val foldlM : m ::: (Type -> Type) -> monad m -> a ::: Type -> b ::: Type
              -> (a -> b -> m b) -> b -> t a -> m b
 
@@ -57,6 +59,8 @@ val foldlMap : a ::: Type -> b ::: Type -> c ::: Type
 val mem : a ::: Type -> eq a -> a -> t a -> bool
 
 val find : a ::: Type -> (a -> bool) -> t a -> option a
+
+val findM : m ::: (Type -> Type) -> monad m -> a ::: Type -> (a -> m bool) -> t a -> m (option a)
 
 val search : a ::: Type -> b ::: Type -> (a -> option b) -> t a -> option b
 
