@@ -24,7 +24,6 @@ Vcs-Git: https://github.com/urweb/debian-urweb.git
 
 Package: urweb
 Architecture: any
-Multi-Arch: foreign
 Pre-Depends: ${misc:Pre-Depends}
 Depends:
  default-libmysqlclient-dev,
