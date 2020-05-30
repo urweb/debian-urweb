@@ -11,6 +11,10 @@ export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
 # arm64 and mips64el. See https://bugs.debian.org/871572 for details.
 export DEB_CFLAGS_MAINT_APPEND := -fno-code-hoisting
 
+# Use -D_FORTIFY_SOURCE=1 instead of -D_FORTIFY_SOURCE=2 to prevent performance
+# problems with %n specifiers. See https://bugs.debian.org/934722 for details.
+export DEB_CPPFLAGS_MAINT_APPEND := -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=1
+
 # Harden SML executables.
 export DEB_BUILD_MAINT_OPTIONS := hardening=+all
 export MLTONARGS := \

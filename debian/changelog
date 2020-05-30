@@ -1,3 +1,10 @@
+urweb (20170720+dfsg-3) UNRELEASED; urgency=medium
+
+  * Improve performance by using -D_FORTIFY_SOURCE=1 instead of
+    -D_FORTIFY_SOURCE=2. (Closes: #934722)
+
+ -- Benjamin Barenblat <bbaren@mit.edu>  Mon, 26 Aug 2019 19:44:41 -0400
+
 urweb (20170720+dfsg-2) unstable; urgency=medium
 
   * Disable code hoisting when using MLton’s C codegen. (Closes: #871572)
