@@ -1,4 +1,5 @@
 liburweb_http.so.0 liburweb-http0 #MINVER#
+* Build-Depends-Package: urweb
  main@Base 20150214
  uw_backlog@Base 20150214
  uw_copy_client_data@Base 20150214

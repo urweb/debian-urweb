@@ -1,4 +1,5 @@
 liburweb.so.0 liburweb0 #MINVER#
+* Build-Depends-Package: urweb
  client_pruner@Base 20150214
  pthread_create_big@Base 20150214
  strcmp_nullsafe@Base 20160805

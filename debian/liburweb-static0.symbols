@@ -1,4 +1,5 @@
 liburweb_static.so.0 liburweb-static0 #MINVER#
+* Build-Depends-Package: urweb
  main@Base 20150214
  uw_copy_client_data@Base 20150214
  uw_do_expunge@Base 20150214
