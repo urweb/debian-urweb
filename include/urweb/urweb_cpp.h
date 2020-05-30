@@ -103,7 +103,7 @@ char *uw_Basis_htmlifyFloat(struct uw_context *, uw_Basis_float);
 char *uw_Basis_htmlifyString(struct uw_context *, uw_Basis_string);
 char *uw_Basis_htmlifyBool(struct uw_context *, uw_Basis_bool);
 char *uw_Basis_htmlifyTime(struct uw_context *, uw_Basis_time);
-char *uw_Basis_htmlifySpecialChar(struct uw_context *, unsigned char);
+char *uw_Basis_htmlifySpecialChar(struct uw_context *, uw_Basis_char);
 char *uw_Basis_htmlifySource(struct uw_context *, uw_Basis_source);
 
 uw_unit uw_Basis_htmlifyInt_w(struct uw_context *, uw_Basis_int);
@@ -111,7 +111,7 @@ uw_unit uw_Basis_htmlifyFloat_w(struct uw_context *, uw_Basis_float);
 uw_unit uw_Basis_htmlifyString_w(struct uw_context *, uw_Basis_string);
 uw_unit uw_Basis_htmlifyBool_w(struct uw_context *, uw_Basis_bool);
 uw_unit uw_Basis_htmlifyTime_w(struct uw_context *, uw_Basis_time);
-uw_unit uw_Basis_htmlifySpecialChar_w(struct uw_context *, unsigned char);
+uw_unit uw_Basis_htmlifySpecialChar_w(struct uw_context *, uw_Basis_char);
 uw_unit uw_Basis_htmlifySource_w(struct uw_context *, uw_Basis_source);
 
 char *uw_Basis_attrifyInt(struct uw_context *, uw_Basis_int);
@@ -138,6 +138,7 @@ char *uw_Basis_urlifySource(struct uw_context *, uw_Basis_source);
 
 uw_unit uw_Basis_urlifyInt_w(struct uw_context *, uw_Basis_int);
 uw_unit uw_Basis_urlifyFloat_w(struct uw_context *, uw_Basis_float);
+uw_unit uw_Basis_urlifyChar_w(struct uw_context *, uw_Basis_char);
 uw_unit uw_Basis_urlifyString_w(struct uw_context *, uw_Basis_string);
 uw_unit uw_Basis_urlifyBool_w(struct uw_context *, uw_Basis_bool);
 uw_unit uw_Basis_urlifyTime_w(struct uw_context *, uw_Basis_time);
@@ -148,6 +149,7 @@ uw_Basis_unit uw_Basis_unurlifyUnit(struct uw_context * ctx, char **s);
 uw_Basis_int uw_Basis_unurlifyInt(struct uw_context *, char **);
 uw_Basis_float uw_Basis_unurlifyFloat(struct uw_context *, char **);
 uw_Basis_string uw_Basis_unurlifyString(struct uw_context *, char **);
+uw_Basis_char uw_Basis_unurlifyChar(struct uw_context *, char **);
 uw_Basis_string uw_Basis_unurlifyString_fromClient(struct uw_context *, char **);
 uw_Basis_bool uw_Basis_unurlifyBool(struct uw_context *, char **);
 uw_Basis_time uw_Basis_unurlifyTime(struct uw_context *, char **);
@@ -164,6 +166,7 @@ uw_Basis_string uw_Basis_strchr(struct uw_context *, const char *, uw_Basis_char
 uw_Basis_int uw_Basis_strcspn(struct uw_context *, const char *, const char *);
 uw_Basis_string uw_Basis_substring(struct uw_context *, const char *, uw_Basis_int, uw_Basis_int);
 uw_Basis_string uw_Basis_str1(struct uw_context *, uw_Basis_char);
+uw_Basis_string uw_Basis_ofUnicode(struct uw_context *, uw_Basis_int);
 
 uw_Basis_string uw_strdup(struct uw_context *, const char *);
 uw_Basis_string uw_maybe_strdup(struct uw_context *, const char *);
@@ -242,6 +245,7 @@ uw_Basis_string uw_Basis_blessEnvVar(struct uw_context *, uw_Basis_string);
 uw_Basis_string uw_Basis_blessMeta(struct uw_context *, uw_Basis_string);
 
 uw_Basis_string uw_Basis_checkUrl(struct uw_context *, uw_Basis_string);
+uw_Basis_string uw_Basis_anchorUrl(struct uw_context *, uw_Basis_string);
 uw_Basis_string uw_Basis_checkMime(struct uw_context *, uw_Basis_string);
 uw_Basis_string uw_Basis_checkRequestHeader(struct uw_context *, uw_Basis_string);
 uw_Basis_string uw_Basis_checkResponseHeader(struct uw_context *, uw_Basis_string);
@@ -262,6 +266,7 @@ uw_Basis_string uw_Basis_fileMimeType(struct uw_context *, uw_Basis_file);
 uw_Basis_blob uw_Basis_fileData(struct uw_context *, uw_Basis_file);
 uw_Basis_int uw_Basis_blobSize(struct uw_context *, uw_Basis_blob);
 uw_Basis_blob uw_Basis_textBlob(struct uw_context *, uw_Basis_string);
+uw_Basis_string uw_Basis_textOfBlob(struct uw_context *, uw_Basis_blob);
 
 uw_Basis_string uw_Basis_postType(struct uw_context *, uw_Basis_postBody);
 uw_Basis_string uw_Basis_postData(struct uw_context *, uw_Basis_postBody);
@@ -327,6 +332,7 @@ uw_Basis_bool uw_Basis_isxdigit(struct uw_context *, uw_Basis_char);
 uw_Basis_char uw_Basis_tolower(struct uw_context *, uw_Basis_char);
 uw_Basis_char uw_Basis_toupper(struct uw_context *, uw_Basis_char);
 
+uw_Basis_bool uw_Basis_iscodepoint(struct uw_context *, uw_Basis_int);
 uw_Basis_int uw_Basis_ord(struct uw_context *, uw_Basis_char);
 uw_Basis_char uw_Basis_chr(struct uw_context *, uw_Basis_int);
 

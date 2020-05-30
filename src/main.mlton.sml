@@ -43,14 +43,25 @@ fun parse_flags flag_info args =
                 fn (flag1, _, _) => flag0 = flag1
             end
 
+        fun normalizeArg arg =
+          case arg of
+              "-h" => "-help"
+            | "--h" => "-help"
+            | "--help" => "-help"
+            | _ => arg
+
         fun loop [] : string list = []
           | loop (arg :: args) =
-             if String.isPrefix "-" arg then
-                case List.find (search_pred arg) flag_info of
-                  NONE => raise Fail ("Unknown flag "^arg^", see -help")
-                | SOME x => exec x args
-             else
-                arg :: loop args
+            let
+                val arg = normalizeArg arg
+            in
+                if String.isPrefix "-" arg then
+                    case List.find (search_pred arg) flag_info of
+                        NONE => raise Fail ("Unknown flag "^arg^", see -help")
+                      | SOME x => exec x args
+                else
+                    arg :: loop args
+            end
 
         and exec (_, ZERO f, _) args =
                 (f (); loop args)
@@ -95,6 +106,8 @@ fun usage flag_info =
 
 
 (* Encapsulate main invocation handler in a function, possibly to be called multiple times within a daemon. *)
+
+exception DaemonExit
 
 fun oneRun args =
     let
@@ -156,7 +169,7 @@ fun oneRun args =
               ("print-cinclude", ZERO printCInclude,
                     SOME "print directory of C headers and exit"),
               ("ccompiler", ONE ("<program>", Settings.setCCompiler),
-                    SOME "set the C compiler to <program>"), 
+                    SOME "set the C compiler to <program>"),
               ("demo", ONE ("<prefix>", fn prefix =>
                                 demo := SOME (prefix, false)),
                     NONE),
@@ -164,7 +177,7 @@ fun oneRun args =
                                 demo := SOME (prefix, true)),
                     NONE),
               ("tutorial", set_true tutorial,
-                    NONE),
+                    SOME "render HTML tutorials from .ur source files"),
               ("protocol", ONE ("[http|cgi|fastcgi|static]",
                                 Settings.setProtocol),
                     SOME "set server protocol"),
@@ -175,7 +188,7 @@ fun oneRun args =
               ("dbms", ONE ("[sqlite|mysql|postgres]", Settings.setDbms),
                     SOME "select database engine"),
               ("debug", call_true Settings.setDebug,
-                    NONE),
+                    SOME "save some intermediate C files"),
               ("verbose", ZERO (fn () =>
                                 (Compiler.debug := true;
                                  Elaborate.verbose := true)),
@@ -191,7 +204,8 @@ fun oneRun args =
               ("unifyMore", set_true Elaborate.unifyMore,
                     SOME "continue unification before reporting type error"),
               ("dumpSource", set_true Compiler.dumpSource,
-                    NONE),
+                    SOME ("print source code of last intermediate program "^
+                          "if there is an error")),
               ("dumpVerboseSource", ZERO (fn () =>
                                 (Compiler.dumpSource := true;
                                  ElabPrint.debug := true;
@@ -205,22 +219,26 @@ fun oneRun args =
                     SOME "serve JavaScript as <file>"),
               ("sql", ONE ("<file>", Settings.setSql o SOME),
                     SOME "output sql script as <file>"),
+              ("endpoints", ONE ("<file>", Settings.setEndpoints o SOME),
+                    SOME "output exposed URL endpoints in JSON as <file>"),
               ("static", call_true Settings.setStaticLinking,
                     SOME "enable static linking"),
               ("stop", ONE ("<phase>", Compiler.setStop),
                     SOME "stop compilation after <phase>"),
               ("path", TWO ("<name>", "<path>", Compiler.addPath),
-                    NONE),
+                    SOME ("set path variable <name> to <path> for use in "^
+                          ".urp files")),
               ("root", TWO ("<name>", "<path>",
                             (fn (name, path) =>
                                 Compiler.addModuleRoot (path, name))),
-                    NONE),
+                    SOME "prefix names of modules found in <path> with <name>"),
               ("boot", ZERO (fn () =>
                             (Compiler.enableBoot ();
                              Settings.setBootLinking true)),
-                    NONE),
+                    SOME ("run from build tree and generate statically linked "^
+                          "executables ")),
               ("sigfile", ONE ("<file>", Settings.setSigFile o SOME),
-                    NONE),
+                    SOME "search for cryptographic signing keys in <file>"),
               ("iflow", set_true Compiler.doIflow,
                     NONE),
               ("sqlcache", call_true Settings.setSqlcache,
@@ -229,17 +247,19 @@ fun oneRun args =
                     NONE),
               ("moduleOf", ONE ("<file>", printModuleOf),
                     SOME "print module name of <file> and exit"),
+              ("startLspServer", ZERO Lsp.startServer, SOME "Start Language Server Protocol server"),
               ("noEmacs", set_true Demo.noEmacs,
                     NONE),
               ("limit", TWO ("<class>", "<num>", add_class),
-                    NONE),
+                    SOME "set resource usage limit for <class> to <num>"),
               ("explainEmbed", set_true JsComp.explainEmbed,
                     SOME ("explain errors about embedding of server-side "^
                           "values in client code"))
         ]
 
         val () = case args of
-                     ["daemon", "stop"] => OS.Process.exit OS.Process.success
+                     ["daemon", "stop"] => (OS.FileSys.remove socket handle OS.SysErr _ => ();
+                                            raise DaemonExit)
                    | _ => ()
 
         val sources = parse_flags (flag_info ()) args
@@ -274,7 +294,7 @@ fun oneRun args =
             else
                 OS.Process.failure
           | (_, _, true) => (Tutorial.make job;
-                             OS.Process.success)
+                                OS.Process.success)
           | _ =>
             if !tc then
                 (Compiler.check Compiler.toElaborate job;
@@ -302,127 +322,138 @@ fun send (sock, s) =
             send (sock, String.extract (s, n, NONE))
     end
 
+fun startDaemon () =
+    if OS.FileSys.access (socket, []) then
+        (print ("It looks like a daemon is already listening in this directory,\n"
+                ^ "though it's possible a daemon died without cleaning up its socket.\n");
+         OS.Process.exit OS.Process.failure)
+    else case Posix.Process.fork () of
+             SOME _ => ()
+           | NONE =>
+             let
+                 val () = Elaborate.incremental := true
+                 val listen = UnixSock.Strm.socket ()
+
+                 fun loop () =
+                     let
+                         val (sock, _) = Socket.accept listen
+
+                         fun loop' (buf, args) =
+                             let
+                                 val s = if CharVector.exists (fn ch => ch = #"\n") buf then
+                                             ""
+                                         else
+                                             MLton.CharVector.fromPoly (Vector.map (chr o Word8.toInt) (MLton.Word8Vector.toPoly (Socket.recvVec (sock, 1024))))
+                                 val s = buf ^ s
+                                 val (befor, after) = Substring.splitl (fn ch => ch <> #"\n") (Substring.full s)
+                             in
+                                 if Substring.isEmpty after then
+                                     loop' (s, args)
+                                 else
+                                     let
+                                         val cmd = Substring.string befor
+                                         val rest = Substring.string (Substring.slice (after, 1, NONE))
+                                     in
+                                         case cmd of
+                                             "" =>
+                                             (case args of
+                                                  ["stop", "daemon"] =>
+                                                  (((Socket.close listen;
+                                                     OS.FileSys.remove socket) handle OS.SysErr _ => ());
+                                                   OS.Process.exit OS.Process.success)
+                                                | _ =>
+                                                  let
+                                                      val success = (oneRun (rev args) handle DaemonExit => OS.Process.exit OS.Process.success)
+                                                                    handle ex => (print "unhandled exception:\n";
+                                                                                  print (General.exnMessage ex ^ "\n");
+                                                                                  OS.Process.failure)
+                                                  in
+                                                      TextIO.flushOut TextIO.stdOut;
+                                                      TextIO.flushOut TextIO.stdErr;
+                                                      send (sock, if OS.Process.isSuccess success then
+                                                                      "\001"
+                                                                  else
+                                                                      "\002")
+                                                  end)
+                                           | _ => loop' (rest, cmd :: args)
+                                     end
+                             end handle OS.SysErr _ => ()
+
+                         fun redirect old =
+                             Posix.IO.dup2 {old = valOf (Posix.FileSys.iodToFD (Socket.ioDesc sock)),
+                                            new = old}
+
+                         val oldStdout = Posix.IO.dup Posix.FileSys.stdout
+                         val oldStderr = Posix.IO.dup Posix.FileSys.stderr
+                     in
+                         (* Redirect the daemon's output to the socket. *)
+                         redirect Posix.FileSys.stdout;
+                         redirect Posix.FileSys.stderr;
+
+                         loop' ("", []);
+                         Socket.close sock;
+
+                         Posix.IO.dup2 {old = oldStdout, new = Posix.FileSys.stdout};
+                         Posix.IO.dup2 {old = oldStderr, new = Posix.FileSys.stderr};
+                         Posix.IO.close oldStdout;
+                         Posix.IO.close oldStderr;
+
+                         Settings.reset ();
+                         MLton.GC.pack ();
+                         loop ()
+                     end
+             in
+                 OS.Process.atExit (fn () => OS.FileSys.remove socket);
+                 Socket.bind (listen, UnixSock.toAddr socket);
+                 Socket.listen (listen, 1);
+                 loop ()
+             end
+
+fun oneCommandLine args =
+    let
+        val sock = UnixSock.Strm.socket ()
+
+        fun wait () =
+            let
+                val v = Socket.recvVec (sock, 1024)
+            in
+                if Word8Vector.length v = 0 then
+                    OS.Process.failure
+                else
+                    let
+                        val s = MLton.CharVector.fromPoly (Vector.map (chr o Word8.toInt) (MLton.Word8Vector.toPoly v))
+                        val last = Word8Vector.sub (v, Word8Vector.length v - 1)
+                        val (rc, s) = if last = Word8.fromInt 1 then
+                                          (SOME OS.Process.success, String.substring (s, 0, size s - 1))
+                                      else if last = Word8.fromInt 2 then
+                                          (SOME OS.Process.failure, String.substring (s, 0, size s - 1))
+                                      else
+                                          (NONE, s)
+                    in
+                        print s;
+                        case rc of
+                            NONE => wait ()
+                          | SOME rc => rc
+                    end
+            end handle OS.SysErr _ => OS.Process.failure
+    in
+        if Socket.connectNB (sock, UnixSock.toAddr socket)
+           orelse not (List.null (#wrs (Socket.select {rds = [],
+                                                       wrs = [Socket.sockDesc sock],
+                                                       exs = [],
+                                                       timeout = SOME (Time.fromSeconds 1)}))) then
+            (app (fn arg => send (sock, arg ^ "\n")) args;
+             send (sock, "\n");
+             wait ())
+        else
+            (OS.FileSys.remove socket;
+             raise OS.SysErr ("", NONE))
+    end handle OS.SysErr _ => oneRun args handle DaemonExit => OS.Process.success
+            
 val () = (Globals.setResetTime ();
           case CommandLine.arguments () of
-             ["daemon", "start"] =>
-             (case Posix.Process.fork () of
-                  SOME _ => ()
-                | NONE =>
-                  let
-                      val () = Elaborate.incremental := true
-                      val listen = UnixSock.Strm.socket ()
-
-                      fun loop () =
-                          let
-                              val (sock, _) = Socket.accept listen
-
-                              fun loop' (buf, args) =
-                                  let
-                                      val s = if CharVector.exists (fn ch => ch = #"\n") buf then
-                                                  ""
-                                              else
-                                                  MLton.CharVector.fromPoly (Vector.map (chr o Word8.toInt) (MLton.Word8Vector.toPoly (Socket.recvVec (sock, 1024))))
-                                      val s = buf ^ s
-                                      val (befor, after) = Substring.splitl (fn ch => ch <> #"\n") (Substring.full s)
-                                  in
-                                      if Substring.isEmpty after then
-                                          loop' (s, args)
-                                      else
-                                          let
-                                              val cmd = Substring.string befor
-                                              val rest = Substring.string (Substring.slice (after, 1, NONE))
-                                          in
-                                              case cmd of
-                                                  "" =>
-                                                  (case args of
-                                                       ["stop", "daemon"] =>
-                                                       (((Socket.close listen;
-                                                          OS.FileSys.remove socket) handle OS.SysErr _ => ());
-                                                        OS.Process.exit OS.Process.success)
-                                                     | _ =>
-                                                       let
-                                                           val success = (oneRun (rev args))
-                                                               handle ex => (print "unhandled exception:\n";
-                                                                             print (General.exnMessage ex ^ "\n");
-                                                                             OS.Process.failure)
-                                                       in
-                                                           TextIO.flushOut TextIO.stdOut;
-                                                           TextIO.flushOut TextIO.stdErr;
-                                                           send (sock, if OS.Process.isSuccess success then
-                                                                           "\001"
-                                                                       else
-                                                                           "\002")
-                                                       end)
-                                                | _ => loop' (rest, cmd :: args)
-                                          end
-                                  end handle OS.SysErr _ => ()
-
-                              fun redirect old =
-                                  Posix.IO.dup2 {old = valOf (Posix.FileSys.iodToFD (Socket.ioDesc sock)),
-                                                 new = old}
-
-                              val oldStdout = Posix.IO.dup Posix.FileSys.stdout
-                              val oldStderr = Posix.IO.dup Posix.FileSys.stderr
-                          in
-                              (* Redirect the daemon's output to the socket. *)
-                              redirect Posix.FileSys.stdout;
-                              redirect Posix.FileSys.stderr;
-
-                              loop' ("", []);
-                              Socket.close sock;
-
-                              Posix.IO.dup2 {old = oldStdout, new = Posix.FileSys.stdout};
-                              Posix.IO.dup2 {old = oldStderr, new = Posix.FileSys.stderr};
-                              Posix.IO.close oldStdout;
-                              Posix.IO.close oldStderr;
-
-                              Settings.reset ();
-                              MLton.GC.pack ();
-                              loop ()
-                          end
-                  in
-                      OS.Process.atExit (fn () => OS.FileSys.remove socket);
-                      Socket.bind (listen, UnixSock.toAddr socket);
-                      Socket.listen (listen, 1);
-                      loop ()
-                  end)
-           | args =>
-             let
-                 val sock = UnixSock.Strm.socket ()
-
-                 fun wait () =
-                     let
-                         val v = Socket.recvVec (sock, 1024)
-                     in
-                         if Word8Vector.length v = 0 then
-                             OS.Process.failure
-                         else
-                             let
-                                 val s = MLton.CharVector.fromPoly (Vector.map (chr o Word8.toInt) (MLton.Word8Vector.toPoly v))
-                                 val last = Word8Vector.sub (v, Word8Vector.length v - 1)
-                                 val (rc, s) = if last = Word8.fromInt 1 then
-                                                   (SOME OS.Process.success, String.substring (s, 0, size s - 1))
-                                               else if last = Word8.fromInt 2 then
-                                                   (SOME OS.Process.failure, String.substring (s, 0, size s - 1))
-                                               else
-                                                   (NONE, s)
-                             in
-                                 print s;
-                                 case rc of
-                                     NONE => wait ()
-                                   | SOME rc => rc
-                             end
-                     end handle OS.SysErr _ => OS.Process.failure
-             in
-                 if Socket.connectNB (sock, UnixSock.toAddr socket)
-                    orelse not (List.null (#wrs (Socket.select {rds = [],
-                                                                wrs = [Socket.sockDesc sock],
-                                                                exs = [],
-                                                                timeout = SOME (Time.fromSeconds 1)}))) then
-                     (app (fn arg => send (sock, arg ^ "\n")) args;
-                      send (sock, "\n");
-                      OS.Process.exit (wait ()))
-                 else
-                     (OS.FileSys.remove socket;
-                      raise OS.SysErr ("", NONE))
-             end handle OS.SysErr _ => OS.Process.exit (oneRun args))
+              ["daemon", "start"] => startDaemon ()
+            | ["daemon", "restart"] =>
+              (ignore (oneCommandLine ["daemon", "stop"]);
+               startDaemon ())
+            | args => OS.Process.exit (oneCommandLine args))

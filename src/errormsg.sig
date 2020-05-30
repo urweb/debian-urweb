@@ -48,9 +48,17 @@ signature ERROR_MSG = sig
     val posOf : int -> pos
     val spanOf : int * int -> span
 
+    (* To monitor in which modules the elaboration phase finds errors *)
+    val startElabStructure : string -> unit
+    val stopElabStructureAndGetErrored : string -> bool (* Did the module elab encounter errors? *)
+
+    val resetStructureTracker: unit -> unit
     val resetErrors : unit -> unit
     val anyErrors : unit -> bool
     val error : string -> unit
     val errorAt : span -> string -> unit
     val errorAt' : int * int -> string -> unit
+    val readErrorLog: unit ->
+                      { span: span
+                      , message: string } list
 end

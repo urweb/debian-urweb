@@ -79,6 +79,9 @@ val toupper : char -> char
 val ord : char -> int
 val chr : int -> char
 
+val iscodepoint : int -> bool
+val issingle : char -> bool
+
 (** String operations *)
 
 val strlen : string -> int
@@ -92,6 +95,7 @@ val strsindex : string -> string -> option int
 val strcspn : string -> string -> int
 val substring : string -> int -> int -> string
 val str1 : char -> string
+val ofUnicode : int -> string
 
 class show
 val show : t ::: Type -> show t -> t -> string
@@ -274,6 +278,8 @@ con serialized :: Type -> Type
 val serialize : t ::: Type -> t -> serialized t
 val deserialize : t ::: Type -> serialized t -> t
 val sql_serialized : t ::: Type -> sql_injectable_prim (serialized t)
+val unsafeSerializedToString : t ::: Type -> serialized t -> string
+val unsafeSerializedFromString : t ::: Type -> string -> serialized t
 
 con primary_key :: {Type} -> {{Unit}} -> Type
 val no_primary_key : fs ::: {Type} -> primary_key fs []
@@ -566,9 +572,6 @@ val sql_div : t ::: Type -> sql_arith t -> sql_binary t t t
 val sql_mod : sql_binary int int int
 
 val sql_eq : t ::: Type -> sql_binary t t bool
-(* Note that the semantics of this operator on nullable types are different than for standard SQL!
- * Instead, we do it the sane way, where [NULL = NULL]. *)
-
 val sql_ne : t ::: Type -> sql_binary t t bool
 val sql_lt : t ::: Type -> sql_binary t t bool
 val sql_le : t ::: Type -> sql_binary t t bool
@@ -619,6 +622,16 @@ val sql_octet_length : sql_ufunc blob int
 val sql_known : t ::: Type -> sql_ufunc t bool
 val sql_lower : sql_ufunc string string
 val sql_upper : sql_ufunc string string
+
+con sql_bfunc :: Type -> Type -> Type -> Type
+val sql_bfunc : tables ::: {{Type}} -> agg ::: {{Type}} -> exps ::: {Type}
+                -> dom1 ::: Type -> dom2 ::: Type -> ran ::: Type
+                -> sql_bfunc dom1 dom2 ran
+                -> sql_exp tables agg exps dom1
+                -> sql_exp tables agg exps dom2
+                -> sql_exp tables agg exps ran
+val sql_similarity : sql_bfunc string string float
+(* Only supported by Postgres for now, via the pg_trgm module *)
 
 val sql_nullable : tables ::: {{Type}} -> agg ::: {{Type}} -> exps ::: {Type} -> t ::: Type
                    -> sql_injectable_prim t
@@ -803,6 +816,7 @@ type id
 val fresh : transaction id
 val giveFocus : id -> transaction unit
 val show_id : show id
+val anchorUrl : id -> url
 
 val dyn : ctx ::: {Unit} -> use ::: {Type} -> bind ::: {Type} -> [ctx ~ [Dyn]] => unit
           -> tag [Signal = signal (xml ([Dyn] ++ ctx) use bind)] ([Dyn] ++ ctx) [] use bind
@@ -830,7 +844,7 @@ val meta : unit -> tag [Nam = meta, Content = string, Id = id] head [] [] []
 
 datatype mouseButton = Left | Right | Middle
 
-type mouseEvent = { ScreenX : int, ScreenY : int, ClientX : int, ClientY : int,
+type mouseEvent = { ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, OffsetX : int, OffsetY : int,
                     CtrlKey : bool, ShiftKey : bool, AltKey : bool, MetaKey : bool,
                     Button : mouseButton }
 
@@ -1014,6 +1028,8 @@ val checkMime : string -> option mimeType
 val returnBlob : t ::: Type -> blob -> mimeType -> transaction t
 val blobSize : blob -> int
 val textBlob : string -> blob
+val textOfBlob : blob -> option string
+(* Returns [Some] exactly when the blob contains no zero bytes. *)
 
 type postBody
 val postType : postBody -> string
@@ -1069,7 +1085,7 @@ val ctel : ctext
 val ccolor : ctext
 
 val cnumber : cformTag ([Source = source (option float), Min = float, Max = float, Step = float, Size = int] ++ boxAttrs ++ inputAttrs) []
-val crange : cformTag ([Source = source (option float), Min = float, Max = float, Size = int] ++ boxAttrs ++ inputAttrs) []
+val crange : cformTag ([Source = source (option float), Min = float, Max = float, Size = int, Step = float] ++ boxAttrs ++ inputAttrs) []
 val cdate : cformTag ([Source = source string, Min = string, Max = string, Size = int] ++ boxAttrs ++ inputAttrs) []
 val cdatetime : cformTag ([Source = source string, Min = string, Max = string, Size = int] ++ boxAttrs ++ inputAttrs) []
 val cdatetime_local : cformTag ([Source = source string, Min = string, Max = string, Size = int] ++ boxAttrs ++ inputAttrs) []

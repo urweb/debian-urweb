@@ -37,6 +37,8 @@ signature SETTINGS = sig
     val configSrcLib : string ref
     val configInclude : string ref
     val configSitelisp : string ref
+    val configIcuIncludes : string ref
+    val configIcuLibs : string ref
 
     val libUr : unit -> string
     val libC : unit -> string
@@ -219,8 +221,14 @@ signature SETTINGS = sig
          onlyUnion : bool,
          nestedRelops : bool,
          windowFunctions : bool,
+         requiresTimestampDefaults : bool,
          supportsIsDistinctFrom : bool,
-         supportsSHA512 : bool
+         supportsSHA512 : {InitializeDb : string,
+                           GenerateHash : string -> string} option,
+         (* If supported, give the SQL code to
+          * enable the feature in a particular
+          * database and to compute a hash of a value. *)
+         supportsSimilar : {InitializeDb : string} option
     }
 
     val addDbms : dbms -> unit
@@ -235,6 +243,9 @@ signature SETTINGS = sig
 
     val setSql : string option -> unit
     val getSql : unit -> string option
+
+    val setEndpoints : string option -> unit
+    val getEndpoints : unit -> string option
 
     val setCoreInline : int -> unit
     val getCoreInline : unit -> int
@@ -258,6 +269,7 @@ signature SETTINGS = sig
     val getFileCache : unit -> string option
 
     (* Which GET-able functions should be allowed to have side effects? *)
+    val setSafeGetDefault : bool -> unit
     val setSafeGets : string list -> unit
     val isSafeGet : string -> bool
 

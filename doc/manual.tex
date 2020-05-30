@@ -59,9 +59,9 @@ make
 sudo make install
 \end{verbatim}
 
-Some other packages must be installed for the above to work.  At a minimum, you need a standard UNIX shell, with standard UNIX tools like sed and GCC (or an alternate C compiler) in your execution path; MLton, the whole-program optimizing compiler for Standard ML; and the development files for the OpenSSL C library.  As of this writing, in the ``testing'' version of Debian Linux, this command will install the more uncommon of these dependencies:
+Some other packages must be installed for the above to work.  At a minimum, you need a standard UNIX shell, with standard UNIX tools like sed and GCC (or an alternate C compiler) in your execution path; MLton, the whole-program optimizing compiler for Standard ML; and the development files for the OpenSSL C library and the ICU C library.  As of this writing, in the ``testing'' version of Debian Linux, this command will install the more uncommon of these dependencies:
 \begin{verbatim}
-apt-get install mlton libssl-dev
+apt-get install mlton libssl-dev libicu-dev
 \end{verbatim}
 
 Note that, like the Ur/Web compiler, MLton is a whole-program optimizing compiler, so it frequently requires much more memory than old-fashioned compilers do.  Expect building Ur/Web with MLton to require not much less than a gigabyte of RAM.  If a \texttt{mlton} invocation ends suspiciously, the most likely explanation is that it has exhausted available memory.
@@ -190,6 +190,7 @@ Here is the complete list of directive forms.  ``FFI'' stands for ``foreign func
 \item \texttt{profile} generates an executable that may be used with gprof.
 \item \texttt{rewrite KIND FROM TO} gives a rule for rewriting canonical module paths.  For instance, the canonical path of a page may be \texttt{Mod1.Mod2.mypage}, while you would rather the page were accessed via a URL containing only \texttt{page}.  The directive \texttt{rewrite url Mod1/Mod2/mypage page} would accomplish that.  The possible values of \texttt{KIND} determine which kinds of objects are affected.  The kind \texttt{all} matches any object, and \texttt{url} matches page URLs.  The kinds \texttt{table}, \texttt{sequence}, and \texttt{view} match those sorts of SQL entities, and \texttt{relation} matches any of those three.  \texttt{cookie} matches HTTP cookies, and \texttt{style} matches CSS class names.  If \texttt{FROM} ends in \texttt{/*}, it is interpreted as a prefix matching rule, and rewriting occurs by replacing only the appropriate prefix of a path with \texttt{TO}.  The \texttt{TO} field may be left empty to express the idea of deleting a prefix.  For instance, \texttt{rewrite url Main/*} will strip all \texttt{Main/} prefixes from URLs.  While the actual external names of relations and styles have parts separated by underscores instead of slashes, all rewrite rules must be written in terms of slashes.  An optional suffix of \cd{[-]} for a \cd{rewrite} directive asks to additionally replace all \cd{\_} characters with \cd{-} characters, which can be handy for, e.g., interfacing with an off-the-shelf CSS library that prefers hyphens over underscores.
 \item \texttt{safeGet URI} asks to allow the page handler assigned this canonical URI prefix to cause persistent side effects, even if accessed via an HTTP \cd{GET} request.
+\item \texttt{safeGetDefault} asks to allow \emph{any} page handler to cause side effects, even if accessed via an HTTP \cd{GET} request.
 \item \texttt{script URL} adds \texttt{URL} to the list of extra JavaScript files to be included at the beginning of any page that uses JavaScript.  This is most useful for importing JavaScript versions of functions found in new FFI modules.
 \item \texttt{serverOnly Module.ident} registers an FFI function or transaction that may only be run on the server.
 \item \texttt{sigfile PATH} sets a path where your application should look for a key to use in cryptographic signing.  This is used to prevent cross-site request forgery attacks for any form handler that both reads a cookie and creates side effects.  If the referenced file doesn't exist, an application will create it and read its saved data on future invocations.  You can also initialize the file manually with any contents at least 16 bytes long; the first 16 bytes will be treated as the key.
@@ -237,7 +238,26 @@ Further \cd{urweb} invocations in the same working directory will send requests 
 \begin{verbatim}
 urweb daemon stop
 \end{verbatim}
+To restart a running (or crashed) daemon, run
+\begin{verbatim}
+urweb daemon restart
+\end{verbatim}
 Communication happens via a UNIX domain socket in file \cd{.urweb\_daemon} in the working directory.
+
+Bundled with the compiler is an LSP or Language Server Protocol server. This is a program that allows various editors to request information about Ur/Web code via a standardized messaging protocol. The Ur/Web LSP server currently provides basic implementations for autocompletion, hover and compiler errors. The server is started by running
+\begin{verbatim}
+urweb -startLspServer
+\end{verbatim}
+Currently there are no prebuilt editor plugins to register this server with your editor of choice but it should be fairly simple to do so. For example in Emacs using the lsp-mode, all you need to make this work is the following configuration (assuming you use the urweb-mode bundled with the compiler):
+\begin{verbatim}
+(require 'lsp)
+(setq lsp-language-id-configuration '((urweb-mode . "urweb")))
+(lsp-register-client
+  (make-lsp-client :new-connection (lsp-stdio-connection '("urweb" "-startLspServer"))
+                    :major-modes '(urweb-mode)
+                    :server-id 'urweb-lsp))
+\end{verbatim}
+Note that to keep the server responsive we don't compile Ur/Web code in the traditional way. Rather, we use only the .urs files (or if applicable .ur files that only contain valid .urs statements) for modules that are not currently being edited. That's why the LSP server requires .urs files for all of your modules.
 
 \medskip
 
@@ -276,6 +296,8 @@ sqlite3 path/to/database/file <app.sql
   \end{itemize}
 
 \item \texttt{-dumpSource}: When compilation fails, output to stderr the complete source code of the last intermediate program before the compilation phase that signaled the error.  (Warning: these outputs can be very long and aren't especially optimized for readability!)
+
+\item \texttt{-endpoints FILENAME}: Populate the specified file with a JSON description of all the HTTP endpoints that the compiled application supports, with information on MIME content type, for static resources.
 
 \item \texttt{-explainEmbed}: Trigger more verbose error messages about inability to embed server-side values in client-side code.
 
@@ -421,7 +443,7 @@ We give the Ur language definition in \LaTeX $\;$ math mode, since that is prett
   \end{tabular}
 \end{center}
 
-We often write syntax like $e^*$ to indicate zero or more copies of $e$, $e^+$ to indicate one or more copies, and $e,^*$ and $e,^+$ to indicate multiple copies separated by commas.  Another separator may be used in place of a comma.  The $e$ term may be surrounded by parentheses to indicate grouping; those parentheses should not be included in the actual ASCII.
+We often write syntax like $e^*$ to indicate zero or more copies of $e$, $e^+$ to indicate one or more copies, and $e,^*$ and $e,^+$ to indicate multiple copies separated by commas.  Another separator may be used in place of a comma.  When $e$ consists of multiple symbols, the $e$ term and separator (if any) are surrounded by parentheses to indicate grouping; those parentheses should not be included in the actual ASCII.
 
 We write $\ell$ for literals of the primitive types, for the most part following C conventions.  There are $\mt{int}$, $\mt{float}$, $\mt{char}$, and $\mt{string}$ literals.  Character literals follow the SML convention instead of the C convention, written like \texttt{\#"a"} instead of \texttt{'a'}.
 
@@ -464,13 +486,13 @@ $$\begin{array}{rrcll}
   &&& c \; c & \textrm{type-level function application} \\
   &&& \lambda x \; :: \; \kappa \Rightarrow c & \textrm{type-level function abstraction} \\
   \\
-  &&& X \Longrightarrow c & \textrm{type-level kind-polymorphic function abstraction} \\
   &&& c [\kappa] & \textrm{type-level kind-polymorphic function application} \\
+  &&& X \Longrightarrow c & \textrm{type-level kind-polymorphic function abstraction} \\
   \\
   &&& () & \textrm{type-level unit} \\
   &&& \#X & \textrm{field name} \\
   \\
-  &&& [(c = c)^*] & \textrm{known-length type-level record} \\
+  &&& [(c = c,)^*] & \textrm{known-length type-level record} \\
   &&& c \rc c & \textrm{type-level record concatenation} \\
   &&& \mt{map} & \textrm{type-level record map} \\
   \\
@@ -550,10 +572,10 @@ $$\begin{array}{rrcll}
   \\
   &&& \mt{let} \; ed^* \; \mt{in} \; e \; \mt{end} & \textrm{local definitions} \\
   \\
-  &&& \mt{case} \; e \; \mt{of} \; (p \Rightarrow e|)^+ & \textrm{pattern matching} \\
+  &&& \mt{case} \; e \; \mt{of} \; (p \Rightarrow e\mid)^+ & \textrm{pattern matching} \\
   \\
-  &&& \lambda [c \sim c] \Rightarrow e & \textrm{guarded expression abstraction} \\
   &&& e \; ! & \textrm{guarded expression application} \\
+  &&& \lambda [c \sim c] \Rightarrow e & \textrm{guarded expression abstraction} \\
   \\
   &&& \_ & \textrm{wildcard} \\
   &&& (e) & \textrm{explicit precedence} \\
@@ -600,7 +622,7 @@ There are a variety of derived syntactic forms that elaborate into the core synt
 
 In many contexts where record fields are expected, like in a projection $e.c$, a constant field may be written as simply $X$, rather than $\#X$.
 
-A record type may be written $\{(c = c,)^*\}$, which elaborates to $\$[(c = c,)^*]$.
+A record type may be written $\{(c : c,)^*\}$, which elaborates to $\$[(c = c,)^*]$.
 
 The notation $[c_1, \ldots, c_n]$ is shorthand for $[c_1 = (), \ldots, c_n = ()]$.
 
@@ -622,7 +644,7 @@ A signature item or declaration $\mt{class} \; x = \lambda y \Rightarrow c$ may 
 
 Handling of implicit and explicit constructor arguments may be tweaked with some prefixes to variable references.  An expression $@x$ is a version of $x$ where all type class instance and disjointness arguments have been made explicit.  (For the purposes of this paragraph, the type family $\mt{Top.folder}$ is a type class, though it isn't marked as one by the usual means; and any record type is considered to be a type class instance type when every field's type is a type class instance type.)  An expression $@@x$ achieves the same effect, additionally making explicit all implicit constructor arguments.  The default is that implicit arguments are inserted automatically after any reference to a variable, or after any application of a variable to one or more arguments.  For such an expression, implicit wildcard arguments are added for the longest prefix of the expression's type consisting only of implicit polymorphism, type class instances, and disjointness obligations.  The same syntax works for variables projected out of modules and for capitalized variables (datatype constructors).
 
-At the expression level, an analogue is available of the composite $\lambda$ form for constructors.  We define the language of binders as $b ::= p \mid [x] \mid [x \; ? \; \kappa] \mid X \mid [c \sim c]$.  A lone variable $[x]$ stands for an implicit constructor variable of unspecified kind.  The standard value-level function binder is recovered as the type-annotated pattern form $x : \tau$.  It is a compile-time error to include a pattern $p$ that does not match every value of the appropriate type.
+At the expression level, an analogue is available of the composite $\lambda$ form for constructors.  We define the language of binders as $b ::= p \mid [x] \mid [x \; ? \; \kappa] \mid [X] \mid [c \sim c]$.  A lone variable $[x]$ stands for an implicit constructor variable of unspecified kind.  The standard value-level function binder is recovered as the type-annotated pattern form $x : \tau$.  It is a compile-time error to include a pattern $p$ that does not match every value of the appropriate type.
 
 A local $\mt{val}$ declaration may bind a pattern instead of just a plain variable.  As for function arguments, only irrefutable patterns are legal.
 
@@ -745,10 +767,10 @@ $$\infer{\Gamma \vdash c_1 \; c_2 :: \kappa_2}{
 }$$
 
 $$\infer{\Gamma \vdash c[\kappa'] :: [X \mapsto \kappa']\kappa}{
-  \Gamma \vdash c :: X \to \kappa
+  \Gamma \vdash c :: X \longrightarrow \kappa
   & \Gamma \vdash \kappa'
 }
-\quad \infer{\Gamma \vdash X \Longrightarrow c :: X \to \kappa}{
+\quad \infer{\Gamma \vdash X \Longrightarrow c :: X \longrightarrow \kappa}{
   \Gamma, X \vdash c :: \kappa
 }$$
 
@@ -775,7 +797,7 @@ $$\infer{\Gamma \vdash (\overline c) :: (\kappa_1 \times \ldots \times \kappa_n)
   \Gamma \vdash c :: (\kappa_1 \times \ldots \times \kappa_n)
 }$$
 
-$$\infer{\Gamma \vdash \lambda [c_1 \sim c_2] \Rightarrow \tau :: \mt{Type}}{
+$$\infer{\Gamma \vdash [c_1 \sim c_2] \Rightarrow \tau :: \mt{Type}}{
   \Gamma \vdash c_1 :: \{\kappa\}
   & \Gamma \vdash c_2 :: \{\kappa'\}
   & \Gamma, c_1 \sim c_2 \vdash \tau :: \mt{Type}
@@ -911,7 +933,7 @@ $$\infer{\Gamma \vdash e [\kappa] : [X \mapsto \kappa]\tau}{
   \Gamma, X \vdash e : \tau
 }$$
 
-$$\infer{\Gamma \vdash \{\overline{c = e}\} : \{\overline{c : \tau}\}}{
+$$\infer{\Gamma \vdash \{\overline{c = e}\} : \$[\overline{c = \tau}]}{
   \forall i: \Gamma \vdash c_i :: \mt{Name}
   & \Gamma \vdash e_i : \tau_i
   & \forall i \neq j: \Gamma \vdash c_i \sim c_j
@@ -941,7 +963,7 @@ $$\infer{\Gamma \vdash \mt{let} \; \overline{ed} \; \mt{in} \; e \; \mt{end} : \
   & \Gamma_i \vdash e_i : \tau
 }$$
 
-$$\infer{\Gamma \vdash \lambda [c_1 \sim c_2] \Rightarrow e : \lambda [c_1 \sim c_2] \Rightarrow \tau}{
+$$\infer{\Gamma \vdash \lambda [c_1 \sim c_2] \Rightarrow e : [c_1 \sim c_2] \Rightarrow \tau}{
   \Gamma \vdash c_1 :: \{\kappa\}
   & \Gamma \vdash c_2 :: \{\kappa'\}
   & \Gamma, c_1 \sim c_2 \vdash e : \tau
@@ -978,7 +1000,7 @@ $$\infer{\Gamma \vdash M.X \; p \leadsto \Gamma'; \overline{[x_i \mapsto \tau'_i
   & \Gamma \vdash p \leadsto \Gamma'; \overline{[x_i \mapsto \tau'_i]}\tau''
 }$$
 
-$$\infer{\Gamma \vdash \{\overline{X = p}\} \leadsto \Gamma_n; \{\overline{X = \tau}\}}{
+$$\infer{\Gamma \vdash \{\overline{X = p}\} \leadsto \Gamma_n; \$[\overline{X = \tau}]}{
   \Gamma_0 = \Gamma
   & \forall i: \Gamma_i \vdash p_i \leadsto \Gamma_{i+1}; \tau_i
 }
@@ -1451,7 +1473,7 @@ Some operations are only allowed in server-side code or only in client-side code
 The Ur Basis defines the monad constructor class from Haskell.
 
 $$\begin{array}{l}
-  \mt{class} \; \mt{monad} :: \mt{Type} \to \mt{Type} \\
+  \mt{class} \; \mt{monad} :: (\mt{Type} \to \mt{Type}) \to \mt{Type} \\
   \mt{val} \; \mt{return} : \mt{m} ::: (\mt{Type} \to \mt{Type}) \to \mt{t} ::: \mt{Type} \\
   \hspace{.1in} \to \mt{monad} \; \mt{m} \\
   \hspace{.1in} \to \mt{t} \to \mt{m} \; \mt{t} \\
@@ -2102,7 +2124,7 @@ Configure the policy for meta names with the \texttt{allow} and \texttt{deny} \t
 
 Ur/Web supports running code on web browsers, via automatic compilation to JavaScript.
 
-The concurrency model is \emph{cooperative multithreading}.  Like with, say, POSIX threads, which uses the \emph{preemptive multithreading} model, there may be multiple threads of control active at a time.  However, unlike with preemptive multithreading, the currently running thread gets to run interrupted until a well-defined \emph{context-switch} point.  Specifically, four functions defined below are the context-switch points.  They are $\mt{sleep}$, $\mt{rpc}$, $\mt{tryRpc}$, and $\mt{recv}$.  (We explain their purposes as we come to them below.)  Additional functions added via the foreign function interface might also have context-switching behavior.  In any case, it is guaranteed that a running thread ``owns the processor'' until it calls a context-switching function, at which time we may switch to running a different thread instead.
+The concurrency model is \emph{cooperative multithreading}.  Like with, say, POSIX threads, which uses the \emph{preemptive multithreading} model, there may be multiple threads of control active at a time.  However, unlike with preemptive multithreading, the currently running thread gets to run uninterrupted until a well-defined \emph{context-switch} point.  Specifically, four functions defined below are the context-switch points.  They are $\mt{sleep}$, $\mt{rpc}$, $\mt{tryRpc}$, and $\mt{recv}$.  (We explain their purposes as we come to them below.)  Additional functions added via the foreign function interface might also have context-switching behavior.  In any case, it is guaranteed that a running thread ``owns the processor'' until it calls a context-switching function, at which time we may switch to running a different thread instead.
 
 This concurrency paradigm has many nice properties.  For instance, there is almost never any need for locking or other synchronization between threads.
 
@@ -2399,7 +2421,7 @@ A web application is built from a series of modules, with one module, the last o
 
 Elements of modules beside the main module, including page handlers, will only be included in the final application if they are transitive dependencies of the handlers in the main module.
 
-Normal links are accessible via HTTP \texttt{GET}, which the relevant standard says should never cause side effects.  To export a page which may cause side effects, accessible only via HTTP \texttt{POST}, include one argument of the page handler of type $\mt{Basis.postBody}$.  When the handler is called, this argument will receive a value that can be deconstructed into a MIME type (with $\mt{Basis.postType}$) and payload (with $\mt{Basis.postData}$).  This kind of handler should not be used with forms that exist solely within Ur/Web apps; for these, use Ur/Web's built-in support, as described below.  It may still be useful to use $\mt{Basis.postBody}$ with form requests submitted by code outside an Ur/Web app.  For such cases, the function $\mt{Top.postFields} : \mt{postBody} \to \mt{list} \; (\mt{string} \times \mt{string})$ may be useful, breaking a \texttt{POST} body of type \texttt{application/x-www-form-urlencoded} into its name-value pairs.
+Normal links are accessible via HTTP \texttt{GET}, which the relevant standard says should never cause side effects.  To export a page that may cause side effects, accessible only via HTTP \texttt{POST}, include one argument of the page handler of type $\mt{Basis.postBody}$.  When the handler is called, this argument will receive a value that can be deconstructed into a MIME type (with $\mt{Basis.postType}$) and payload (with $\mt{Basis.postData}$).  This kind of handler should not be used with forms that exist solely within Ur/Web apps; for these, use Ur/Web's built-in support, as described below.  It may still be useful to use $\mt{Basis.postBody}$ with form requests submitted by code outside an Ur/Web app.  For such cases, the function $\mt{Top.postFields} : \mt{postBody} \to \mt{list} \; (\mt{string} \times \mt{string})$ may be useful, breaking a \texttt{POST} body of type \texttt{application/x-www-form-urlencoded} into its name-value pairs.
 
 Any normal page handler may also include arguments of type $\mt{option \; Basis.queryString}$, which will be handled specially.  Rather than being deserialized from the current URI, such an argument is passed the whole query string that the handler received.  The string may be analyzed by calling $\mt{Basis.show}$ on it.  A handler of this kind may be passed as an argument to $\mt{Basis.effectfulUrl}$ to generate a URL to a page that may be used as a ``callback'' by an external service, such that the handler is allowed to cause side effects.
 
@@ -2418,9 +2440,7 @@ Ur/Web programs generally mix server- and client-side code in a fairly transpare
 
 \medskip
 
-The HTTP standard suggests that GET requests only be used in ways that generate no side effects.  Side effecting operations should use POST requests instead.  The Ur/Web compiler enforces this rule strictly, via a simple conservative program analysis.  Any page that may have a side effect must be accessed through a form, all of which use POST requests, or via a direct call to a page handler with some argument of type $\mt{Basis.postBody}$.  A page is judged to have a side effect if its code depends syntactically on any of the side-effecting, server-side FFI functions.  Links, forms, and most client-side event handlers are not followed during this syntactic traversal, but \texttt{<body onload=\{...\}>} handlers \emph{are} examined, since they run right away and could just as well be considered parts of main page handlers.
-
-Ur/Web includes a kind of automatic protection against cross site request forgery attacks.  Whenever any page execution can have side effects and can also read at least one cookie value, all cookie values must be signed cryptographically, to ensure that the user has come to the current page by submitting a form on a real page generated by the proper server.  Signing and signature checking are inserted automatically by the compiler.  This prevents attacks like phishing schemes where users are directed to counterfeit pages with forms that submit to your application, where a user's cookies might be submitted without his knowledge, causing some undesired side effect.
+The HTTP standard suggests that GET requests only be used in ways that generate no side effects.  Side-effecting operations should use POST requests instead.  The Ur/Web compiler enforces this rule strictly, via a simple conservative program analysis.  Any page that may have a side effect must be accessed through a form, all of which use POST requests, or via a direct call to a page handler with some argument of type $\mt{Basis.postBody}$.  A page is judged to have a side effect if its code depends syntactically on any of the side-effecting, server-side FFI functions.  Links, forms, and most client-side event handlers are not followed during this syntactic traversal, but \texttt{<body onload=\{...\}>} handlers \emph{are} examined, since they run right away and could just as well be considered parts of main page handlers.
 
 \subsection{Tasks}
 
@@ -2442,6 +2462,19 @@ The currently supported task kinds are:
 \item $\mt{periodic} \; n$: Code that is run when the application starts up and then every $n$ seconds thereafter.
 \end{itemize}
 
+\subsection{Security Model}
+
+Ur/Web follows a pragmatic security model that, nonetheless, isn't magic.  The warranty can be voided using the foreign function interface (FFI; see next section), but it is easy to check if that interface is being used, solely by inspecting \texttt{.urp} files.  If such inspection shows no use of the FFI, then a number of classic security problems are precluded (modulo bugs in the implementation of Ur/Web itself, of course):
+\begin{itemize}
+\item There can be no \textbf{code-injection attacks}.  That is, strings are never implicitly interpreted as programs and run, which can be particularly problematic for strings coming from unconstrained user input.  In the case of SQL code, the specialized name for such vulnerabilities is \emph{SQL injections}.  In the case of HTML or JavaScript code, the specialized name is \emph{cross-site scripting}.  Ur/Web programmers need not worry about the difference, because the Ur/Web implementation promises that you will know if a string is being interpreted as a program!
+\item Ur/Web includes a kind of automatic protection against \textbf{cross-site request forgery (CSRF) attacks}.  Whenever any page execution can have side effects and can also read at least one cookie value, all cookie values must be signed cryptographically, to ensure that the user has come to the current page by submitting a form on a real page generated by the proper server.  Signing and signature checking are inserted automatically by the compiler.  This prevents attacks like phishing schemes where users are directed to counterfeit pages with forms that submit to your application, where a user's cookies might be submitted without his knowledge, causing some undesired side effect that the attacker couldn't cause directly due to lack of knowledge.
+\item Quite a lot of other insecure monkey business can go in web applications.  Ur/Web contains a pretty locked-down standard library, so that, for instance, it is not possible for Ur/Web code to access the file system directly... ergo it is not possible to leak secret file contents or overwrite files insecurely!  The FFI must be used to summon such rights explicitly.
+\end{itemize}
+
+However, Ur/Web doesn't guarantee ``any code that compiles is secure.''  The right model is that \emph{any HTTP endpoint exposed by the application can be called at any time with any argument values and any cookie values}.  Ur/Web does nothing to guarantee that all function calls experienced by the application are possible according to legit traversal of links and forms!  In particular, the cryptographic signing mentioned above is \emph{not} used to prevent users from making up whatever cookie values they like.  It is just used to make sure an application only takes action based on cookie values when the user has explicitly submitted a form (and presumably the application author takes care to make all forms sufficiently intuitive, so none have surprising side effects that defy security or privacy expectations).
+
+Another philosophical assumption is that \emph{there is no hope of protecting a user against an attacker with access to the legit user's browser}.  For instance, any attacker who can observe the HTML code of one page with CSRF protection is now able to trick the user into running arbitrary handler functions, since a cookie signature is not specific to the destination handler.  Sure, we would improve security slightly (at the expense of Ur/Web implementation complexity) by making signatures handler-specific or even handler-argument-specific, but the idea is that you have already lost if an attacker has that kind of access to your browser.  (And he needs browser access to see the page because of course your security-critical app is accessed only via TLS, right?)
+
 
 \section{\label{ffi}The Foreign Function Interface}
 
@@ -2453,7 +2486,7 @@ It is most convenient to encapsulate an FFI binding with a new \texttt{.urp} fil
 \item \texttt{clientOnly Module.ident} registers a value as being allowed only in client-side code.
 \item \texttt{clientToServer Module.ident} declares a type as OK to marshal between clients and servers.  By default, abstract FFI types are not allowed to be marshalled, since your library might be maintaining invariants that the simple serialization code doesn't check.
 \item \texttt{effectful Module.ident} registers a function that can have side effects.  This is the default for \texttt{transaction}-based types, and, actually, this directive is mostly present for legacy compatibility reasons, since it used to be required explicitly for each \texttt{transaction}al function.
-\item \texttt{ffi FILE.urs} names the file giving your library's signature.  You can include multiple such files in a single \texttt{.urp} file, and each file \texttt{mod.urp} defines an FFI module \texttt{Mod}.
+\item \texttt{ffi FILE.urs} names the file giving your library's signature.  You can include multiple such files in a single \texttt{.urp} file, and each file \texttt{mod.urs} defines an FFI module \texttt{Mod}.
 \item \texttt{include FILE} requests inclusion of a C header file.
 \item \texttt{jsFile FILE} requests inclusion of a JavaScript source file.
 \item \texttt{jsFunc Module.ident=name} gives a mapping from an Ur name for a value to a JavaScript name.
@@ -2559,6 +2592,7 @@ It is possible to write JavaScript FFI code that interacts with the functional-r
   \item \cd{sr(v)} and \cd{sb(s, f)}, the ``return'' and ``bind'' monad operators, respectively
   \item \cd{ss(s)}, to produce the signal corresponding to source \cd{s}
   \item \cd{scur(s)}, to get the current value of signal \cd{s}
+  \item \cd{listen(s, f)}, to ask that function \cd{f} be called with the current value of \cd{s}, every time it changes, including immediately upon establishing this listener
   \end{itemize}
 
 \item The behavior of the \cd{<dyn>} pseudo-tag may be mimicked by following the right convention in a piece of HTML source code with a type like $\mt{xbody}$.  Such a piece of source code may be encoded with a JavaScript string.  To insert a dynamic section, include a \cd{<script>} tag whose content is just a call \cd{dyn(pnode, s)}.  The argument \cd{pnode} specifies what the relevant enclosing parent tag is.  Use value \cd{"tr"} when the immediate parent is \cd{<tr>}, use \cd{"table"} when the immediate parent is \cd{<table>}, and use \cd{"span"} otherwise.  The argument \cd{s} is a string-valued signal giving the HTML code to be inserted at this point.  As with the usual \cd{<dyn>} tag, that HTML subtree is automatically updated as the value of \cd{s} changes.
