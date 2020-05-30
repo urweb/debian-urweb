@@ -1,6 +1,6 @@
 Source: urweb
 Section: devel
-Priority: extra
+Priority: optional
 Maintainer: Benjamin Barenblat <bbaren@mit.edu>
 Build-Depends:
  curl,
