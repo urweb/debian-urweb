@@ -1,9 +1,10 @@
-urweb (20170720+dfsg-3) UNRELEASED; urgency=medium
+urweb (20200209+dfsg-1) UNRELEASED; urgency=medium
 
+  * New upstream release.
   * Improve performance by using -D_FORTIFY_SOURCE=1 instead of
     -D_FORTIFY_SOURCE=2. (Closes: #934722)
 
- -- Benjamin Barenblat <bbaren@mit.edu>  Mon, 26 Aug 2019 19:44:41 -0400
+ -- Benjamin Barenblat <bbaren@mit.edu>  Sun, 31 May 2020 18:29:19 -0400
 
 urweb (20170720+dfsg-2) unstable; urgency=medium
 
