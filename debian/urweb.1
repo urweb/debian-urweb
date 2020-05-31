@@ -1,4 +1,4 @@
-.\" Copyright 2013, 2015-2017 Benjamin Barenblat <bbaren@mit.edu>
+.\" Copyright 2013, 2015-2017, 2020 Benjamin Barenblat <bbaren@mit.edu>
 .\"
 .\" Licensed under the Apache License, Version 2.0 (the "License"); you may not
 .\" use this file except in compliance with the License.  You may obtain a copy
@@ -12,7 +12,7 @@
 .\" License for the specific language governing permissions and limitations
 .\" under the License.
 .mso www.tmac
-.TH URWEB 1 2017-07-20
+.TH URWEB 1 2020-02-09
 .SH NAME
 urweb \- compiler for the Ur/Web programming language
 .SH SYNOPSIS
@@ -22,7 +22,7 @@ urweb \- compiler for the Ur/Web programming language
 .RI [\| project-name \|]
 .br
 .B urweb daemon
-.RB (\| start \||\| stop \|)
+.RB (\| start \||\| stop \||\| restart \|)
 .SH DESCRIPTION
 This manual page briefly documents the
 .B urweb
@@ -372,6 +372,11 @@ for replaced inline elements, and
 for the possibility to set a width.
 .RE
 .TP
+.B \-endpoints \fIfile\fR
+Populates the specified
+.I file
+with a JSON description of all the HTTP endpoints that the compiled application will support, with information on MIME content type, for static resources.
+.TP
 .B \-moduleOf \fIfile\fR
 Prints the Ur module name corresponding to the source file
 .IR file .
@@ -389,6 +394,11 @@ will use.
 Prints the file system location in which
 .B urweb
 will look for C headers.
+.TP
+.B \-startLspServer
+Starts a
+.URL https://microsoft.github.io/language-server-protocol/ "Language Server Protocol"
+server.
 .TP
 .B \-tc
 If specified,
@@ -454,6 +464,10 @@ To stop the background daemon, run
 .RS
 .B urweb daemon stop
 .RE
+and to restart it, run
+.RS
+.B urweb daemon restart
+.RE
 Communication happens via a Unix domain socket in file .urweb_daemon in the working directory.
 .SH BUGS
 .B urweb
@@ -462,7 +476,7 @@ If you believe you've found a bug (e.g., the compiler throws an unhandled except
 .MTO ur@impredicative.com "" .
 .SH COPYRIGHT
 .B urweb
-is copyright \(co 2008-2017 Adam Chlipala and licensed under the
+is copyright \(co 2008-2020 Adam Chlipala and licensed under the
 .URL http://www.xfree86.org/3.3.6/COPYRIGHT2.html#5 "3-clause BSD license" .
 .PP
-This manual page is copyright \(co 2013, 2015\(em2017 Benjamin Barenblat and licensed under the Apache License, Version 2.0.
+This manual page is copyright \(co 2013, 2015\(em2017, 2020 Benjamin Barenblat and licensed under the Apache License, Version 2.0.
