@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Benjamin Barenblat <bbaren@mit.edu>
 Build-Depends:
  curl,
- debhelper-compat (= 13),
+ debhelper-compat (= 12),
  default-libmysqlclient-dev,
  libicu-dev,
  libpq-dev,
