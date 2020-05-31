@@ -79,6 +79,9 @@ val toupper : char -> char
 val ord : char -> int
 val chr : int -> char
 
+val iscodepoint : int -> bool
+val issingle : char -> bool
+
 (** String operations *)
 
 val strlen : string -> int
@@ -92,6 +95,7 @@ val strsindex : string -> string -> option int
 val strcspn : string -> string -> int
 val substring : string -> int -> int -> string
 val str1 : char -> string
+val ofUnicode : int -> string
 
 class show
 val show : t ::: Type -> show t -> t -> string
@@ -192,11 +196,6 @@ val datetimeSecond : time -> int
 val datetimeDayOfWeek : time -> int
 
 
-(** * Encryption *)
-
-val crypt : string -> string -> string
-
-
 (** HTTP operations *)
 
 con http_cookie :: Type -> Type
@@ -279,6 +278,8 @@ con serialized :: Type -> Type
 val serialize : t ::: Type -> t -> serialized t
 val deserialize : t ::: Type -> serialized t -> t
 val sql_serialized : t ::: Type -> sql_injectable_prim (serialized t)
+val unsafeSerializedToString : t ::: Type -> serialized t -> string
+val unsafeSerializedFromString : t ::: Type -> string -> serialized t
 
 con primary_key :: {Type} -> {{Unit}} -> Type
 val no_primary_key : fs ::: {Type} -> primary_key fs []
@@ -571,9 +572,6 @@ val sql_div : t ::: Type -> sql_arith t -> sql_binary t t t
 val sql_mod : sql_binary int int int
 
 val sql_eq : t ::: Type -> sql_binary t t bool
-(* Note that the semantics of this operator on nullable types are different than for standard SQL!
- * Instead, we do it the sane way, where [NULL = NULL]. *)
-
 val sql_ne : t ::: Type -> sql_binary t t bool
 val sql_lt : t ::: Type -> sql_binary t t bool
 val sql_le : t ::: Type -> sql_binary t t bool
@@ -624,6 +622,16 @@ val sql_octet_length : sql_ufunc blob int
 val sql_known : t ::: Type -> sql_ufunc t bool
 val sql_lower : sql_ufunc string string
 val sql_upper : sql_ufunc string string
+
+con sql_bfunc :: Type -> Type -> Type -> Type
+val sql_bfunc : tables ::: {{Type}} -> agg ::: {{Type}} -> exps ::: {Type}
+                -> dom1 ::: Type -> dom2 ::: Type -> ran ::: Type
+                -> sql_bfunc dom1 dom2 ran
+                -> sql_exp tables agg exps dom1
+                -> sql_exp tables agg exps dom2
+                -> sql_exp tables agg exps ran
+val sql_similarity : sql_bfunc string string float
+(* Only supported by Postgres for now, via the pg_trgm module *)
 
 val sql_nullable : tables ::: {{Type}} -> agg ::: {{Type}} -> exps ::: {Type} -> t ::: Type
                    -> sql_injectable_prim t
@@ -808,6 +816,7 @@ type id
 val fresh : transaction id
 val giveFocus : id -> transaction unit
 val show_id : show id
+val anchorUrl : id -> url
 
 val dyn : ctx ::: {Unit} -> use ::: {Type} -> bind ::: {Type} -> [ctx ~ [Dyn]] => unit
           -> tag [Signal = signal (xml ([Dyn] ++ ctx) use bind)] ([Dyn] ++ ctx) [] use bind
@@ -830,26 +839,38 @@ val data_attrs : data_attr -> data_attr -> data_attr
 
 val head : unit -> tag [Data = data_attr] html head [] []
 val title : unit -> tag [Data = data_attr] head [] [] []
-val link : unit -> tag [Data = data_attr, Id = id, Rel = string, Typ = string, Href = url, Media = string, Integrity = string, Crossorigin = string] head [] [] []
+val link : unit -> tag [Data = data_attr, Id = id, Rel = string, Title = string, Typ = string, Href = url, Media = string, Integrity = string, Crossorigin = string, Sizes = string] head [] [] []
 val meta : unit -> tag [Nam = meta, Content = string, Id = id] head [] [] []
 
 datatype mouseButton = Left | Right | Middle
 
-type mouseEvent = { ScreenX : int, ScreenY : int, ClientX : int, ClientY : int,
+type mouseEvent = { ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, OffsetX : int, OffsetY : int,
                     CtrlKey : bool, ShiftKey : bool, AltKey : bool, MetaKey : bool,
                     Button : mouseButton }
 
 con mouseEvents = map (fn _ :: Unit => mouseEvent -> transaction unit)
                           [Onclick, Oncontextmenu, Ondblclick, Onmousedown, Onmouseenter, Onmouseleave, Onmousemove, Onmouseout, Onmouseover, Onmouseup]
 
+(* Key arguments are character codes. *)
 type keyEvent = { KeyCode : int,
                   CtrlKey : bool, ShiftKey : bool, AltKey : bool, MetaKey : bool }
 
 con keyEvents = map (fn _ :: Unit => keyEvent -> transaction unit)
                         [Onkeydown, Onkeypress, Onkeyup]
 
-val body : unit -> tag ([Data = data_attr, Onload = transaction unit, Onresize = transaction unit, Onunload = transaction unit, Onhashchange = transaction unit]
-                            ++ mouseEvents ++ keyEvents)
+con focusEvents = [Onblur = transaction unit, Onfocus = transaction unit]
+
+con resizeEvents = [Onresize = transaction unit]
+con scrollEvents = [Onscroll = transaction unit]
+
+con boxEvents = focusEvents ++ mouseEvents ++ keyEvents ++ resizeEvents ++ scrollEvents
+con tableEvents = focusEvents ++ mouseEvents ++ keyEvents
+
+con boxAttrs = [Data = data_attr, Id = id, Title = string, Role = string, Align = string] ++ boxEvents
+con tableAttrs = [Data = data_attr, Id = id, Title = string, Align = string] ++ tableEvents
+
+val body : unit -> tag ([Data = data_attr, Id = id, Title = string, Onload = transaction unit, Onunload = transaction unit, Onhashchange = transaction unit]
+                            ++ boxEvents)
                        html body [] []
 
 con bodyTag = fn (attrs :: {Type}) =>
@@ -862,19 +883,6 @@ con bodyTagStandalone = fn (attrs :: {Type}) =>
                                  unit -> tag attrs ([Body] ++ ctx) [] [] []
 
 val br : bodyTagStandalone [Data = data_attr, Id = id]
-
-con focusEvents = [Onblur = transaction unit, Onfocus = transaction unit]
-
-
-(* Key arguments are character codes. *)
-con resizeEvents = [Onresize = transaction unit]
-con scrollEvents = [Onscroll = transaction unit]
-
-con boxEvents = focusEvents ++ mouseEvents ++ keyEvents ++ resizeEvents ++ scrollEvents
-con tableEvents = focusEvents ++ mouseEvents ++ keyEvents
-
-con boxAttrs = [Data = data_attr, Id = id, Title = string, Role = string, Align = string] ++ boxEvents
-con tableAttrs = [Data = data_attr, Id = id, Title = string, Align = string] ++ tableEvents
 
 val span : bodyTag boxAttrs
 val div : bodyTag boxAttrs
@@ -975,21 +983,20 @@ con formTag = fn (ty :: Type) (inner :: {Unit}) (attrs :: {Type}) =>
                         nm :: Name -> unit
                         -> tag attrs ([Form] ++ ctx) inner [] [nm = ty]
 
-con inputAttrs = [Required = bool, Autofocus = bool]
-
+con inputAttrs' = [Required = bool, Autofocus = bool,
+                   Onchange = transaction unit]
+con inputAttrs = inputAttrs' ++ [Oninput = transaction unit]
 
 val hidden : formTag string [] [Data = data_attr, Id = string, Value = string]
-val textbox : formTag string [] ([Value = string, Size = int, Placeholder = string, Source = source string, Onchange = transaction unit,
-                                  Ontext = transaction unit] ++ boxAttrs ++ inputAttrs)
-val password : formTag string [] ([Value = string, Size = int, Placeholder = string, Onchange = transaction unit] ++ boxAttrs ++ inputAttrs)
-val textarea : formTag string [] ([Rows = int, Cols = int, Placeholder = string, Onchange = transaction unit,
-                                   Ontext = transaction unit] ++ boxAttrs ++ inputAttrs)
+val textbox : formTag string [] ([Value = string, Size = int, Placeholder = string, Source = source string] ++ boxAttrs ++ inputAttrs)
+val password : formTag string [] ([Value = string, Size = int, Placeholder = string] ++ boxAttrs ++ inputAttrs)
+val textarea : formTag string [] ([Rows = int, Cols = int, Placeholder = string] ++ boxAttrs ++ inputAttrs)
 
-val checkbox : formTag bool [] ([Checked = bool, Onchange = transaction unit] ++ boxAttrs)
+val checkbox : formTag bool [] ([Checked = bool] ++ boxAttrs ++ inputAttrs')
 
 (* HTML5 widgets galore! *)
 
-type textWidget = formTag string [] ([Value = string, Size = int, Placeholder = string, Onchange = transaction unit] ++ boxAttrs ++ inputAttrs)
+type textWidget = formTag string [] ([Value = string, Size = int, Placeholder = string] ++ boxAttrs ++ inputAttrs)
 
 val email : textWidget
 val search : textWidget
@@ -997,14 +1004,14 @@ val url_ : textWidget
 val tel : textWidget
 val color : textWidget
 
-val number : formTag float [] ([Value = float, Min = float, Max = float, Step = float, Size = int, Onchange = transaction unit] ++ boxAttrs ++ inputAttrs)
-val range : formTag float [] ([Value = float, Min = float, Max = float, Size = int, Onchange = transaction unit] ++ boxAttrs ++ inputAttrs)
-val date : formTag string [] ([Value = string, Min = string, Max = string, Size = int, Onchange = transaction unit] ++ boxAttrs ++ inputAttrs)
-val datetime : formTag string [] ([Value = string, Min = string, Max = string, Size = int, Onchange = transaction unit] ++ boxAttrs ++ inputAttrs)
-val datetime_local : formTag string [] ([Value = string, Min = string, Max = string, Size = int, Onchange = transaction unit] ++ boxAttrs ++ inputAttrs)
-val month : formTag string [] ([Value = string, Min = string, Max = string, Size = int, Onchange = transaction unit] ++ boxAttrs ++ inputAttrs)
-val week : formTag string [] ([Value = string, Min = string, Max = string, Size = int, Onchange = transaction unit] ++ boxAttrs ++ inputAttrs)
-val timeInput : formTag string [] ([Value = string, Min = string, Max = string, Size = int, Onchange = transaction unit] ++ boxAttrs ++ inputAttrs)
+val number : formTag float [] ([Value = float, Min = float, Max = float, Step = float, Size = int] ++ boxAttrs ++ inputAttrs)
+val range : formTag float [] ([Value = float, Min = float, Max = float, Size = int] ++ boxAttrs ++ inputAttrs)
+val date : formTag string [] ([Value = string, Min = string, Max = string, Size = int] ++ boxAttrs ++ inputAttrs)
+val datetime : formTag string [] ([Value = string, Min = string, Max = string, Size = int] ++ boxAttrs ++ inputAttrs)
+val datetime_local : formTag string [] ([Value = string, Min = string, Max = string, Size = int] ++ boxAttrs ++ inputAttrs)
+val month : formTag string [] ([Value = string, Min = string, Max = string, Size = int] ++ boxAttrs ++ inputAttrs)
+val week : formTag string [] ([Value = string, Min = string, Max = string, Size = int] ++ boxAttrs ++ inputAttrs)
+val timeInput : formTag string [] ([Value = string, Min = string, Max = string, Size = int] ++ boxAttrs ++ inputAttrs)
 
 
 
@@ -1021,6 +1028,8 @@ val checkMime : string -> option mimeType
 val returnBlob : t ::: Type -> blob -> mimeType -> transaction t
 val blobSize : blob -> int
 val textBlob : string -> blob
+val textOfBlob : blob -> option string
+(* Returns [Some] exactly when the blob contains no zero bytes. *)
 
 type postBody
 val postType : postBody -> string
@@ -1034,10 +1043,10 @@ val remainingFields : postField -> string
 
 con radio = [Body, Radio]
 val radio : formTag (option string) radio [Data = data_attr, Id = id]
-val radioOption : unit -> tag ([Value = string, Checked = bool, Onchange = transaction unit] ++ boxAttrs) radio [] [] []
+val radioOption : unit -> tag ([Value = string, Checked = bool] ++ boxAttrs ++ inputAttrs') radio [] [] []
 
 con select = [Select]
-val select : formTag string select ([Onchange = transaction unit] ++ boxAttrs)
+val select : formTag string select (boxAttrs ++ inputAttrs')
 val option : unit -> tag [Data = data_attr, Value = string, Selected = bool] select [] [] []
 
 val submit : ctx ::: {Unit} -> use ::: {Type}
@@ -1065,8 +1074,7 @@ con cformTag = fn (attrs :: {Type}) (inner :: {Unit}) =>
                   -> [[Body] ~ ctx] => [[Body] ~ inner] =>
                         unit -> tag attrs ([Body] ++ ctx) ([Body] ++ inner) [] []
 
-type ctext = cformTag ([Value = string, Size = int, Source = source string, Placeholder = string,
-                        Onchange = transaction unit, Ontext = transaction unit] ++ boxAttrs ++ inputAttrs) []
+type ctext = cformTag ([Value = string, Size = int, Source = source string, Placeholder = string] ++ boxAttrs ++ inputAttrs) []
 
 val ctextbox : ctext
 val cpassword : ctext
@@ -1076,23 +1084,25 @@ val curl : ctext
 val ctel : ctext
 val ccolor : ctext
 
-val cnumber : cformTag ([Source = source (option float), Min = float, Max = float, Step = float, Size = int, Onchange = transaction unit] ++ boxAttrs ++ inputAttrs) []
-val crange : cformTag ([Source = source (option float), Min = float, Max = float, Size = int, Onchange = transaction unit] ++ boxAttrs ++ inputAttrs) []
-val cdate : cformTag ([Source = source string, Min = string, Max = string, Size = int, Onchange = transaction unit] ++ boxAttrs ++ inputAttrs) []
-val cdatetime : cformTag ([Source = source string, Min = string, Max = string, Size = int, Onchange = transaction unit] ++ boxAttrs ++ inputAttrs) []
-val cdatetime_local : cformTag ([Source = source string, Min = string, Max = string, Size = int, Onchange = transaction unit] ++ boxAttrs ++ inputAttrs) []
-val cmonth : cformTag ([Source = source string, Min = string, Max = string, Size = int, Onchange = transaction unit] ++ boxAttrs ++ inputAttrs) []
-val cweek : cformTag ([Source = source string, Min = string, Max = string, Size = int, Onchange = transaction unit] ++ boxAttrs ++ inputAttrs) []
-val ctime : cformTag ([Source = source string, Min = string, Max = string, Size = int, Onchange = transaction unit] ++ boxAttrs ++ inputAttrs) []
+val cnumber : cformTag ([Source = source (option float), Min = float, Max = float, Step = float, Size = int] ++ boxAttrs ++ inputAttrs) []
+val crange : cformTag ([Source = source (option float), Min = float, Max = float, Size = int, Step = float] ++ boxAttrs ++ inputAttrs) []
+val cdate : cformTag ([Source = source string, Min = string, Max = string, Size = int] ++ boxAttrs ++ inputAttrs) []
+val cdatetime : cformTag ([Source = source string, Min = string, Max = string, Size = int] ++ boxAttrs ++ inputAttrs) []
+val cdatetime_local : cformTag ([Source = source string, Min = string, Max = string, Size = int] ++ boxAttrs ++ inputAttrs) []
+val cmonth : cformTag ([Source = source string, Min = string, Max = string, Size = int] ++ boxAttrs ++ inputAttrs) []
+val cweek : cformTag ([Source = source string, Min = string, Max = string, Size = int] ++ boxAttrs ++ inputAttrs) []
+val ctime : cformTag ([Source = source string, Min = string, Max = string, Size = int] ++ boxAttrs ++ inputAttrs) []
 
 val button : cformTag ([Value = string, Disabled = bool] ++ boxAttrs) []
 
-val ccheckbox : cformTag ([Size = int, Source = source bool, Onchange = transaction unit] ++ boxAttrs ++ inputAttrs) []
+val ccheckbox : cformTag ([Size = int, Source = source bool] ++ boxAttrs ++ inputAttrs') []
 
-val cselect : cformTag ([Source = source string, Onchange = transaction unit] ++ boxAttrs) [Cselect]
+val cradio : cformTag ([Source = source (option string), Value = string] ++ boxAttrs ++ inputAttrs') []
+
+val cselect : cformTag ([Source = source string] ++ boxAttrs ++ inputAttrs') [Cselect]
 val coption : unit -> tag [Value = string, Selected = bool] [Cselect, Body] [] [] []
 
-val ctextarea : cformTag ([Rows = int, Cols = int, Placeholder = string, Source = source string, Onchange = transaction unit,
+val ctextarea : cformTag ([Rows = int, Cols = int, Placeholder = string, Source = source string,
                            Ontext = transaction unit] ++ boxAttrs ++ inputAttrs) []
 
 (*** Tables *)

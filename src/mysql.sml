@@ -1602,13 +1602,17 @@ val () = addDbms {name = "mysql",
                   textKeysNeedLengths = true,
                   supportsNextval = false,
                   supportsNestedPrepared = false,
-                  sqlPrefix = "SET storage_engine=InnoDB;\n\n",
+                  sqlPrefix = "",
                   supportsOctetLength = true,
                   trueString = "TRUE",
                   falseString = "FALSE",
                   onlyUnion = true,
                   nestedRelops = false,
                   windowFunctions = false,
-                  supportsIsDistinctFrom = true}
+                  requiresTimestampDefaults = true,
+                  supportsIsDistinctFrom = true,
+                  supportsSHA512 = SOME {InitializeDb = "",
+                                         GenerateHash = fn name => "SHA2(" ^ name ^ ", 512)"},
+                  supportsSimilar = NONE}
 
 end

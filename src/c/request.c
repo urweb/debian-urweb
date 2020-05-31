@@ -11,12 +11,11 @@
 
 #include <pthread.h>
 
+#include "memmem.h"
 #include "urweb.h"
 #include "request.h"
 
 #define MAX_RETRIES 5
-
-void *urweb_memmem(const void *b1, size_t len1, const void *b2, size_t len2);
 
 static int try_rollback(uw_context ctx, int will_retry, void *logger_data, uw_logger log_error) {
   int r = uw_rollback(ctx, will_retry);
@@ -78,6 +77,8 @@ uw_context uw_request_new_context(int id, uw_app *app, uw_loggers *ls) {
 }
 
 static void *ticker(void *data) {
+  (void)data;
+
   while (1) {
     usleep(100000);
     ++uw_time;
@@ -133,6 +134,8 @@ static unsigned long long stackSize;
 
 int pthread_create_big(pthread_t *outThread, void *foo, void *threadFunc, void *arg)
 {
+  (void)foo;
+
   if (stackSize > 0) {
     int err;
     pthread_attr_t stackSizeAttribute;
@@ -418,7 +421,7 @@ request_result uw_request(uw_request_context rc, uw_context ctx,
         }
       }
 
-      part = urweb_memmem(after_sub_headers, body + body_len - after_sub_headers, boundary, boundary_len);
+      part = memmem(after_sub_headers, body + body_len - after_sub_headers, boundary, boundary_len);
       if (!part) {
         log_error(logger_data, "Missing boundary after multipart payload\n");
         return FAILED;

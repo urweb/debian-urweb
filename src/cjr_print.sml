@@ -482,6 +482,11 @@ fun isFile (t : typ) =
         TFfi ("Basis", "file") => true
       | _ => false
 
+fun isString (t : typ) =
+    case #1 t of
+        TFfi ("Basis", "string") => true
+      | _ => false
+
 fun p_sql_type t = string (Settings.p_sql_ctype t)
 
 fun getPargs (e, _) =
@@ -654,7 +659,16 @@ fun unurlify fromClient env (t, loc) =
                                  doEm rest,
                                  string ")"]
                 in
-                    doEm xncs
+                    box [string "(",
+                         string request,
+                         string "[0] == '/' ? ++",
+                         string request,
+                         string " : ",
+                         string request,
+                         string ",",
+                         newline,
+                         doEm xncs,
+                         string ")"]
                 end
 
               | TDatatype (Option, i, xncs) =>
@@ -938,7 +952,7 @@ fun unurlify fromClient env (t, loc) =
                                               newline,
                                               string ":",
                                               space,
-                                              string ("(uw_error(ctx, FATAL, \"Error unurlifying list: %s\", request), NULL))));"),
+                                              string ("(uw_error(ctx, FATAL, \"Error unurlifying list: %s\", *request), NULL))));"),
                                               newline],
                                          string "}",
                                          newline,
@@ -1000,52 +1014,39 @@ fun urlify env t =
     let
         fun urlify' level (t as (_, loc)) =
             case #1 t of
-                TFfi ("Basis", "unit") => box []
+                TFfi ("Basis", "unit") => box [string "uw_Basis_urlifyString_w(ctx, \"\");",
+                                               newline]
               | TFfi (m, t) => box [string ("uw_" ^ ident m ^ "_urlify" ^ capitalize t
                                             ^ "_w(ctx, it" ^ Int.toString level ^ ");"),
                                     newline]
 
-              | TRecord 0 => box []
+              | TRecord 0 => box [string "uw_Basis_urlifyString_w(ctx, \"\");",
+                                  newline]
               | TRecord i =>
                 let
-                    fun empty (t, _) =
-                        case t of
-                            TFfi ("Basis", "unit") => true
-                          | TRecord 0 => true
-                          | TRecord j =>
-                            List.all (fn (_, t) => empty t) (E.lookupStruct env j)
-                          | _ => false
-
                     val xts = E.lookupStruct env i
 
                     val (blocks, _) = foldl
                                       (fn ((x, t), (blocks, printingSinceLastSlash)) =>
-                                          let
-                                              val thisEmpty = empty t
-                                          in
-                                              if thisEmpty then
-                                                  (blocks, printingSinceLastSlash)
-                                              else
-                                                  (box [string "{",
-                                                        newline,
-                                                        p_typ env t,
-                                                        space,
-                                                        string ("it" ^ Int.toString (level + 1)),
-                                                        space,
-                                                        string "=",
-                                                        space,
-                                                        string ("it" ^ Int.toString level ^ ".__uwf_" ^ x ^ ";"),
-                                                        newline,
-                                                        box (if printingSinceLastSlash then
-                                                                 [string "uw_write(ctx, \"/\");",
-                                                                  newline]
-                                                             else
-                                                                 []),
-                                                        urlify' (level + 1) t,
-                                                        string "}",
-                                                        newline] :: blocks,
-                                                   true)
-                                          end)
+                                          (box [string "{",
+                                                newline,
+                                                p_typ env t,
+                                                space,
+                                                string ("it" ^ Int.toString (level + 1)),
+                                                space,
+                                                string "=",
+                                                space,
+                                                string ("it" ^ Int.toString level ^ ".__uwf_" ^ x ^ ";"),
+                                                newline,
+                                                box (if printingSinceLastSlash then
+                                                         [string "uw_write(ctx, \"/\");",
+                                                          newline]
+                                                     else
+                                                         []),
+                                                urlify' (level + 1) t,
+                                                string "}",
+                                                newline] :: blocks,
+                                           true))
                                       ([], false) xts
                 in
                     box (rev blocks)
@@ -2181,6 +2182,25 @@ and p_exp' par tail env (e, loc) =
                                                        string ";"])
                                       inputs,
                           newline,
+                          case Settings.getFileCache () of
+                              NONE => box []
+                            | SOME _ =>
+                              p_list_sepi newline
+                                          (fn i => fn (_, t) =>
+                                              case t of
+                                                  Settings.Blob =>
+                                                  box [string "uw_Basis_cache_file(ctx, arg",
+                                                       string (Int.toString (i + 1)),
+                                                       string ");"]
+                                                | Settings.Nullable Settings.Blob =>
+                                                  box [string "if (arg",
+                                                       string (Int.toString (i + 1)),
+                                                       string ") uw_Basis_cache_file(ctx, arg",
+                                                       string (Int.toString (i + 1)),
+                                                       string ");"]
+                                                | _ => box [])
+                                          inputs,
+                          newline,
                           string "uw_ensure_transaction(ctx);",
                           newline,
                           newline,
@@ -2517,8 +2537,10 @@ fun p_decl env (dAll as (d, loc) : decl) =
 		(case Settings.getOutputJsFile () of
 		    NONE => "app." ^ SHA1.bintohex (SHA1.hash s) ^ ".js"
 		  | SOME s => s)
-            val () = app_js := OS.Path.joinDirFile {dir = Settings.getUrlPrefix (),
-                                                    file = name}
+            val js = OS.Path.joinDirFile {dir = Settings.getUrlPrefix (),
+                                          file = name}
+            val () = app_js := js
+            val () = Endpoints.setJavaScript js
         in
             box [string "static char jslib[] = \"",
                  string (Prim.toCString s),
@@ -2789,7 +2811,7 @@ fun p_file env (ds, ps) =
                              string "}"]
                 end
 
-        fun getInput (x, t) =
+        fun getInput includesFile (x, t) =
             let
                 val n = case SM.find (fnums, x) of
                             NONE => raise Fail ("CjrPrint: Can't find " ^ x ^ " in fnums")
@@ -2839,7 +2861,7 @@ fun p_file env (ds, ps) =
                                                   xts,
                                        newline,
                                        p_list_sep (box []) (fn (x, t) =>
-                                                               box [getInput (x, t),
+                                                               box [getInput includesFile (x, t),
                                                                     string "result.__uwf_",
                                                                     string x,
                                                                     space,
@@ -2902,7 +2924,7 @@ fun p_file env (ds, ps) =
                                                        xts,
                                             newline,
                                             p_list_sep (box []) (fn (x, t) =>
-                                                                    box [getInput (x, t),
+                                                                    box [getInput includesFile (x, t),
                                                                          string "result->__uwf_1.__uwf_",
                                                                          string x,
                                                                          space,
@@ -2955,7 +2977,10 @@ fun p_file env (ds, ps) =
                               space,
                               string "=",
                               space,
-                              unurlify true env t,
+                              if includesFile andalso isString t then
+                                  string "request"
+                              else
+                                  unurlify true env t,
                               string ";",
                               newline]
             end
@@ -2975,6 +3000,7 @@ fun p_file env (ds, ps) =
                              (TRecord i, _) =>
                              let
                                  val xts = E.lookupStruct env i
+                                 val includesFile = List.exists (fn (_, t) => isFile t) xts
                              in
                                  (List.take (ts, length ts - 2),
                                   box [box (map (fn (x, t) => box [p_typ env t,
@@ -2984,7 +3010,7 @@ fun p_file env (ds, ps) =
                                                                    string ";",
                                                                    newline]) xts),
                                        newline,
-                                       box (map getInput xts),
+                                       box (map (getInput includesFile) xts),
                                        case i of
                                            0 => string "uw_unit uw_inputs;"
                                          | _ => box [string "struct __uws_",
@@ -3204,10 +3230,11 @@ fun p_file env (ds, ps) =
 
         val _ = foldl (fn (d, env) =>
                           ((case #1 d of
-                                DDatabase {name = x, expunge = y, initialize = z} => (hasDb := true;
-                                                                                      dbstring := x;
-                                                                                      expunge := y;
-                                                                                      initialize := z)
+                                DDatabase {name = x, expunge = y, initialize = z, ...} =>
+                                (hasDb := true;
+                                 dbstring := x;
+                                 expunge := y;
+                                 initialize := z)
                               | DJavaScript _ => hasJs := true
                               | DTable (s, xts, _, _) => tables := (s, map (fn (x, t) =>
                                                                                (x, sql_type_in env t)) xts) :: !tables
@@ -3308,9 +3335,20 @@ fun p_file env (ds, ps) =
                  string "}",
                  newline]
 
-        val initializers = List.mapPartial (fn (DTask (Initialize, x1, x2, e), _) => SOME (x1, x2, e) | _ => NONE) ds
-        val expungers = List.mapPartial (fn (DTask (ClientLeaves, x1, x2, e), _) => SOME (x1, x2, e) | _ => NONE) ds
-        val periodics = List.mapPartial (fn (DTask (Periodic n, x1, x2, e), _) => SOME (n, x1, x2, e) | _ => NONE) ds
+        val initializers = List.mapPartial (fn (DTask (Initialize, x1, x2, e), _) =>
+                                               SOME (x1, x2, p_exp (E.pushERel (E.pushERel env x1 dummyt) x2 dummyt) e)
+                                             | _ => NONE) ds
+        val expungers = List.mapPartial (fn (DTask (ClientLeaves, x1, x2, e), _) =>
+                                            SOME (x1, x2, p_exp (E.pushERel (E.pushERel env x1 (TFfi ("Basis", "client"), ErrorMsg.dummySpan))
+                                                                            x2 dummyt) e)
+                                          | _ => NONE) ds
+        val periodics = List.mapPartial (fn (DTask (Periodic n, x1, x2, e), _) =>
+                                            SOME (n, x1, x2, p_exp (E.pushERel (E.pushERel env x1 dummyt) x2 dummyt) e)
+                                        | _ => NONE) ds
+
+        val (protos', defs') = ListPair.unzip (latestUrlHandlers ())
+        val protos = protos @ protos'
+        val defs = defs @ defs'
 
         val onError = ListUtil.search (fn (DOnError n, _) => SOME n | _ => NONE) ds
 
@@ -3343,6 +3381,14 @@ fun p_file env (ds, ps) =
              newline,
              string "#include <time.h>",
              newline,
+             (case Settings.getFileCache () of
+                  NONE => box []
+                | SOME _ => box [string "#include <sys/types.h>",
+                                 newline,
+                                 string "#include <sys/stat.h>",
+                                 newline,
+                                 string "#include <unistd.h>",
+                                 newline]),
              if hasDb then
                  box [string ("#include <" ^ #header (Settings.currentDbms ()) ^ ">"),
                       newline]
@@ -3430,7 +3476,7 @@ fun p_file env (ds, ps) =
              newline,
              newline,
 
-             box (ListUtil.mapi (fn (i, (_, x1, x2, e)) =>
+             box (ListUtil.mapi (fn (i, (_, x1, x2, pe)) =>
                                     box [string "static void uw_periodic",
                                          string (Int.toString i),
                                          string "(uw_context ctx) {",
@@ -3441,7 +3487,7 @@ fun p_file env (ds, ps) =
                                               string x2,
                                               string "_1 = 0;",
                                               newline,
-                                              p_exp (E.pushERel (E.pushERel env x1 dummyt) x2 dummyt) e,
+                                              pe,
                                               string ";",
                                               newline],
                                          string "}",
@@ -3580,22 +3626,21 @@ fun p_file env (ds, ps) =
              box [string "static void uw_expunger(uw_context ctx, uw_Basis_client cli) {",
                   newline,
 
-                  p_list_sep (box []) (fn (x1, x2, e) => box [string "({",
-                                                              newline,
-                                                              string "uw_Basis_client __uwr_",
-                                                              string x1,
-                                                              string "_0 = cli;",
-                                                              newline,
-                                                              string "uw_unit __uwr_",
-                                                              string x2,
-                                                              string "_1 = 0;",
-                                                              newline,
-                                                              p_exp (E.pushERel (E.pushERel env x1 (TFfi ("Basis", "client"), ErrorMsg.dummySpan))
-                                                                                x2 dummyt) e,
-                                                              string ";",
-                                                              newline,
-                                                              string "});",
-                                                              newline]) expungers,
+                  p_list_sep (box []) (fn (x1, x2, pe) => box [string "({",
+                                                               newline,
+                                                               string "uw_Basis_client __uwr_",
+                                                               string x1,
+                                                               string "_0 = cli;",
+                                                               newline,
+                                                               string "uw_unit __uwr_",
+                                                               string x2,
+                                                               string "_1 = 0;",
+                                                               newline,
+                                                               pe,
+                                                               string ";",
+                                                               newline,
+                                                               string "});",
+                                                               newline]) expungers,
 
                   if hasDb then
                       box [p_enamed env (!expunge),
@@ -3608,24 +3653,38 @@ fun p_file env (ds, ps) =
              newline,
              string "static void uw_initializer(uw_context ctx) {",
              newline,
-             box [string "uw_begin_initializing(ctx);",
+             box [(case Settings.getFileCache () of
+                       NONE => box []
+                     | SOME dir => box [newline,
+                                        string "struct stat st = {0};",
+                                        newline,
+                                        newline,
+                                        string "if (stat(\"",
+                                        string (Prim.toCString dir),
+                                        string "\", &st) == -1)",
+                                        newline,
+                                        box [string "mkdir(\"",
+                                             string (Prim.toCString dir),
+                                             string "\", 0700);",
+                                             newline]]),
+                  string "uw_begin_initializing(ctx);",
                   newline,
                   p_list_sep newline (fn x => x) (rev (!global_initializers)),
                   string "uw_end_initializing(ctx);",
                   newline,
-                  p_list_sep (box []) (fn (x1, x2, e) => box [string "({",
-                                                              newline,
-                                                              string "uw_unit __uwr_",
-                                                              string x1,
-                                                              string "_0 = 0, __uwr_",
-                                                              string x2,
-                                                              string "_1 = 0;",
-                                                              newline,
-                                                              p_exp (E.pushERel (E.pushERel env x1 dummyt) x2 dummyt) e,
-                                                              string ";",
-                                                              newline,
-                                                              string "});",
-                                                              newline]) initializers,
+                  p_list_sep (box []) (fn (x1, x2, pe) => box [string "({",
+                                                               newline,
+                                                               string "uw_unit __uwr_",
+                                                               string x1,
+                                                               string "_0 = 0, __uwr_",
+                                                               string x2,
+                                                               string "_1 = 0;",
+                                                               newline,
+                                                               pe,
+                                                               string ";",
+                                                               newline,
+                                                               string "});",
+                                                               newline]) initializers,
                   if hasDb then
                       box [p_enamed env (!initialize),
                            string "(ctx, 0);",
@@ -3665,13 +3724,38 @@ fun p_file env (ds, ps) =
                          "uw_input_num", "uw_cookie_sig", "uw_check_url", "uw_check_mime", "uw_check_requestHeader", "uw_check_responseHeader", "uw_check_envVar", "uw_check_meta",
                          case onError of NONE => "NULL" | SOME _ => "uw_onError", "my_periodics",
                          "\"" ^ Prim.toCString (Settings.getTimeFormat ()) ^ "\"",
-                         if Settings.getIsHtml5 () then "1" else "0"],
+                         if Settings.getIsHtml5 () then "1" else "0",
+                         (case Settings.getFileCache () of
+                              NONE => "NULL"
+                            | SOME s => "\"" ^ Prim.toCString s ^ "\"")],
              string "};",
              newline]
     end
 
+fun isText t =
+    case t of
+        String => true
+      | Nullable t => isText t
+      | _ => false
+
+fun declaresAsForeignKey xs s =
+    case String.tokens (fn ch => Char.isSpace ch orelse ch = #"," orelse ch = #"(" orelse ch = #")") s of
+        "FOREIGN" :: "KEY" :: rest =>
+        let
+            fun consume rest =
+                case rest of
+                    [] => false
+                  | "REFERENCES" :: _ => false
+                  | xs' :: rest' => xs' = xs orelse consume rest'
+        in
+            consume rest
+        end
+     |  _ => false
+             
 fun p_sql env (ds, _) =
     let
+        val usesSimilar = ref false
+
         val (pps, _) = ListUtil.foldlMap
                        (fn (dAll as (d, _), env) =>
                            let
@@ -3682,14 +3766,28 @@ fun p_sql env (ds, _) =
                                                  string "(",
                                                  p_list (fn (x, t) =>
                                                             let
+                                                                val xs = Settings.mangleSql (CharVector.map Char.toLower x)
                                                                 val t = sql_type_in env t
+
+                                                                val ts = if #textKeysNeedLengths (Settings.currentDbms ()) andalso isText t
+                                                                            andalso (List.exists (declaresAsForeignKey xs o #2) csts
+                                                                                     orelse List.exists (String.isSubstring (xs ^ "(255)")) (pk :: map #2 csts)) then
+                                                                             "varchar(255)"
+                                                                         else
+                                                                             #p_sql_type (Settings.currentDbms ()) t
                                                             in
-                                                                box [string (Settings.mangleSql (CharVector.map Char.toLower x)),
+                                                                box [string xs,
                                                                      space,
-                                                                     string (#p_sql_type (Settings.currentDbms ()) t),
+                                                                     string ts,
                                                                      case t of
                                                                          Nullable _ => box []
-                                                                       | _ => string " NOT NULL"]
+                                                                       | _ => string " NOT NULL",
+                                                                     case t of
+                                                                         Time => if #requiresTimestampDefaults (Settings.currentDbms ()) then
+                                                                                     string " DEFAULT CURRENT_TIMESTAMP"
+                                                                                 else
+                                                                                     box []
+                                                                       | _ => box []]
                                                             end) xts,
                                                  case (pk, csts) of
                                                      ("", []) => box []
@@ -3697,7 +3795,12 @@ fun p_sql env (ds, _) =
                                                  cut,
                                                  case pk of
                                                      "" => box []
-                                                   | _ => box [string "PRIMARY",
+                                                   | _ => box [string "CONSTRAINT",
+                                                               space,
+                                                               string s,
+                                                               string "_pkey",
+                                                               space,
+                                                               string "PRIMARY",
                                                                space,
                                                                string "KEY",
                                                                space,
@@ -3737,13 +3840,29 @@ fun p_sql env (ds, _) =
                                                  string ";",
                                                  newline,
                                                  newline]
+                                          | DDatabase {usesSimilar = s, ...} =>
+                                            (usesSimilar := s;
+                                             box [])
                                           | _ => box []
                            in
                                (pp, E.declBinds env dAll)
                            end)
                        env ds
     in
-        box (string (#sqlPrefix (Settings.currentDbms ())) :: pps)
+        box ((case Settings.getFileCache () of
+                  NONE => []
+                | SOME _ => case #supportsSHA512 (Settings.currentDbms ()) of
+                                NONE => (ErrorMsg.error "Using file cache with database that doesn't support SHA512";
+                                         [])
+                              | SOME r => [string (#InitializeDb r), newline, newline])
+             @ (if !usesSimilar then
+                    case #supportsSimilar (Settings.currentDbms ()) of
+                        NONE => (ErrorMsg.error "Using SIMILAR with database that doesn't support it";
+                                 [])
+                      | SOME r => [string (#InitializeDb r), newline, newline]
+                else
+                    [])
+             @ string (#sqlPrefix (Settings.currentDbms ())) :: pps)
     end
 
 end

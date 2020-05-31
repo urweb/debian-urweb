@@ -32,7 +32,8 @@ val configLib = ref Config.lib
 val configSrcLib = ref Config.srclib
 val configInclude = ref Config.includ
 val configSitelisp = ref Config.sitelisp
-
+val configIcuIncludes = ref Config.icuIncludes
+val configIcuLibs = ref Config.icuLibs
 val configCCompiler = ref Config.ccompiler
 
 fun getCCompiler () = !configCCompiler
@@ -116,6 +117,7 @@ fun basis x = S.addList (S.empty, map (fn x : string => ("Basis", x)) x)
 val clientToServerBase = basis ["int",
                                 "float",
                                 "string",
+                                "char",
                                 "time",
                                 "file",
                                 "unit",
@@ -156,6 +158,7 @@ fun isEffectful ("Sqlcache", _) = true
 fun addEffectful x = effectful := S.add (!effectful, x)
 
 val benignBase = basis ["get_cookie",
+                        "getenv",
                         "new_client_source",
                         "get_client_source",
                         "set_client_source",
@@ -275,6 +278,7 @@ val jsFuncsBase = basisM [("alert", "alert"),
                           ("urlifyFloat", "ts"),
                           ("urlifyTime", "ts"),
                           ("urlifyString", "uf"),
+                          ("urlifyChar", "uf"),
                           ("urlifyBool", "ub"),
                           ("recv", "rv"),
                           ("strcat", "cat"),
@@ -321,8 +325,10 @@ val jsFuncsBase = basisM [("alert", "alert"),
                           ("ord", "ord"),
 
                           ("checkUrl", "checkUrl"),
+                          ("anchorUrl", "anchorUrl"),
                           ("bless", "bless"),
                           ("blessData", "blessData"),
+                          ("currentUrl", "currentUrl"),
 
                           ("eq_time", "eq"),
                           ("lt_time", "lt"),
@@ -646,7 +652,10 @@ type dbms = {
      onlyUnion : bool,
      nestedRelops : bool,
      windowFunctions: bool,
-     supportsIsDistinctFrom : bool
+     requiresTimestampDefaults : bool,
+     supportsIsDistinctFrom : bool,
+     supportsSHA512 : {InitializeDb : string, GenerateHash : string -> string} option,
+     supportsSimilar : {InitializeDb : string} option
 }
 
 val dbmses = ref ([] : dbms list)
@@ -679,7 +688,10 @@ val curDb = ref ({name = "",
                   onlyUnion = false,
                   nestedRelops = false,
                   windowFunctions = false,
-                  supportsIsDistinctFrom = false} : dbms)
+                  requiresTimestampDefaults = false,
+                  supportsIsDistinctFrom = false,
+                  supportsSHA512 = NONE,
+                  supportsSimilar = NONE} : dbms)
 
 fun addDbms v = dbmses := v :: !dbmses
 fun setDbms s =
@@ -699,6 +711,10 @@ fun getExe () = !exe
 val sql = ref (NONE : string option)
 fun setSql so = sql := so
 fun getSql () = !sql
+
+val endpoints = ref (NONE : string option)
+fun setEndpoints so = endpoints := so
+fun getEndpoints () = !endpoints
 
 val coreInline = ref 5
 fun setCoreInline n = coreInline := n
@@ -724,14 +740,26 @@ val sigFile = ref (NONE : string option)
 fun setSigFile v = sigFile := v
 fun getSigFile () = !sigFile
 
+val fileCache = ref (NONE : string option)
+fun setFileCache v =
+    (if Option.isSome v andalso (case #supportsSHA512 (currentDbms ()) of NONE => true
+                                                                        | SOME _ => false) then
+         ErrorMsg.error "The selected database engine is incompatible with file caching."
+     else
+        ();
+     fileCache := v)
+fun getFileCache () = !fileCache
+
 structure SS = BinarySetFn(struct
                            type ord_key = string
                            val compare = String.compare
                            end)
 
+val safeGetDefault = ref false
 val safeGet = ref SS.empty
+fun setSafeGetDefault b = safeGetDefault := b
 fun setSafeGets ls = safeGet := SS.addList (SS.empty, ls)
-fun isSafeGet x = SS.member (!safeGet, x)
+fun isSafeGet x = !safeGetDefault orelse SS.member (!safeGet, x)
 
 val onError = ref (NONE : (string * string list * string) option)
 fun setOnError x = onError := x
@@ -843,14 +871,17 @@ structure SM = BinaryMapFn(struct
 
 val noMimeFile = ref false
 
+val mimeFilePath = ref "/etc/mime.types"
+fun setMimeFilePath file = mimeFilePath := file
+
 fun noMime () =
-    (TextIO.output (TextIO.stdErr, "WARNING: Error opening /etc/mime.types.  Static files will be served with no suggested MIME types.\n");
+    (TextIO.output (TextIO.stdErr, "WARNING: Error opening " ^ !mimeFilePath ^ ".  Static files will be served with no suggested MIME types.\n");
      noMimeFile := true;
      SM.empty)
 
 fun readMimeTypes () =
     let
-        val inf = FileIO.txtOpenIn "/etc/mime.types"
+        val inf = FileIO.txtOpenIn (!mimeFilePath)
 
         fun loop m =
             case TextIO.inputLine inf of
@@ -908,9 +939,10 @@ val filePath = ref "."
 
 fun setFilePath path = filePath := path
 
-fun addFile {Uri, LoadFromFilename} =
+fun addFile {Uri, LoadFromFilename, MimeType} =
     let
         val path = OS.Path.concat (!filePath, LoadFromFilename)
+                   handle Path => LoadFromFilename
     in
         case SM.find (!files, Uri) of
             SOME (path', _) =>
@@ -926,7 +958,9 @@ fun addFile {Uri, LoadFromFilename} =
                                     Uri,
                                     (path,
                                      {Uri = Uri,
-                                      ContentType = mimeTypeOf path,
+                                      ContentType = case MimeType of
+                                                        NONE => mimeTypeOf path
+                                                      | _ => MimeType,
                                       LastModified = OS.FileSys.modTime path,
                                       Bytes = BinIO.inputAll inf}));
                 BinIO.closeIn inf
@@ -986,6 +1020,7 @@ fun reset () =
      dbstring := NONE;
      exe := NONE;
      sql := NONE;
+     endpoints := NONE;
      coreInline := 5;
      monoInline := 5;
      staticLinking := false;

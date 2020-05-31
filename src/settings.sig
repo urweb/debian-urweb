@@ -37,6 +37,8 @@ signature SETTINGS = sig
     val configSrcLib : string ref
     val configInclude : string ref
     val configSitelisp : string ref
+    val configIcuIncludes : string ref
+    val configIcuLibs : string ref
 
     val libUr : unit -> string
     val libC : unit -> string
@@ -219,7 +221,14 @@ signature SETTINGS = sig
          onlyUnion : bool,
          nestedRelops : bool,
          windowFunctions : bool,
-         supportsIsDistinctFrom : bool
+         requiresTimestampDefaults : bool,
+         supportsIsDistinctFrom : bool,
+         supportsSHA512 : {InitializeDb : string,
+                           GenerateHash : string -> string} option,
+         (* If supported, give the SQL code to
+          * enable the feature in a particular
+          * database and to compute a hash of a value. *)
+         supportsSimilar : {InitializeDb : string} option
     }
 
     val addDbms : dbms -> unit
@@ -234,6 +243,9 @@ signature SETTINGS = sig
 
     val setSql : string option -> unit
     val getSql : unit -> string option
+
+    val setEndpoints : string option -> unit
+    val getEndpoints : unit -> string option
 
     val setCoreInline : int -> unit
     val getCoreInline : unit -> int
@@ -253,7 +265,11 @@ signature SETTINGS = sig
     val setSigFile : string option -> unit
     val getSigFile : unit -> string option
 
+    val setFileCache : string option -> unit
+    val getFileCache : unit -> string option
+
     (* Which GET-able functions should be allowed to have side effects? *)
+    val setSafeGetDefault : bool -> unit
     val setSafeGets : string list -> unit
     val isSafeGet : string -> bool
 
@@ -298,7 +314,7 @@ signature SETTINGS = sig
     val setFilePath : string -> unit
     (* Sets the directory where we look for files being added below. *)
 
-    val addFile : {Uri : string, LoadFromFilename : string} -> unit
+    val addFile : {Uri : string, LoadFromFilename : string, MimeType : string option} -> unit
     val listFiles : unit -> {Uri : string, ContentType : string option, LastModified : Time.time, Bytes : Word8Vector.vector} list
 
     val addJsFile : string (* filename *) -> unit
@@ -306,4 +322,7 @@ signature SETTINGS = sig
 
     val setOutputJsFile : string option (* filename *) -> unit
     val getOutputJsFile : unit -> string option
+
+    val setMimeFilePath : string -> unit
+    (* Set unusual location for /etc/mime.types. *)
 end

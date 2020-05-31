@@ -493,10 +493,11 @@ fun class_name_in (c, _) =
     case c of
         CNamed n => SOME (ClNamed n)
       | CModProj x => SOME (ClProj x)
+      | CAbs (_, _, c') => class_head_in c'
       | CUnif (_, _, _, _, ref (Known c)) => class_name_in c
       | _ => NONE
 
-fun isClass (env : env) c =
+and isClass (env : env) c =
     let
         fun find NONE = false
           | find (SOME c) = Option.isSome (CM.find (#classes env, c))
@@ -504,7 +505,7 @@ fun isClass (env : env) c =
         find (class_name_in c)
     end
 
-fun class_head_in c =
+and class_head_in c =
     case #1 c of
         CApp (f, _) => class_head_in f
       | CUnif (_, _, _, _, ref (Known c)) => class_head_in c
@@ -985,6 +986,16 @@ fun lookupStrNamed (env : env) n =
 
 fun lookupStr (env : env) x = SM.find (#renameStr env, x)
 
+fun dumpCs (env: env): (string * kind) list = 
+    List.map (fn (name, value) => case value of
+                                      Rel' (_, x) => (name, x)
+                                    | Named' (_, x) => (name, x))
+             (SM.listItemsi (#renameC env))
+(* TODO try again with #renameE *)
+fun dumpEs (env: env): (string * con) list = 
+    #relE env @ IM.listItems (#namedE env)
+fun dumpStrs (env: env) =
+    SM.listItemsi (#renameStr env)
 
 fun sgiSeek (sgi, (sgns, strs, cons)) =
     case sgi of
@@ -1663,7 +1674,7 @@ fun declBinds env (d, loc) =
       | DVal (x, n, t, _) => pushENamedAs env x n t
       | DValRec vis => foldl (fn ((x, n, t, _), env) => pushENamedAs env x n t) env vis
       | DSgn (x, n, sgn) => pushSgnNamedAs env x n sgn
-      | DStr (x, n, sgn, _) => pushStrNamedAs' false env x n sgn
+      | DStr (x, n, sgn, _) => pushStrNamedAs env x n sgn
       | DFfiStr (x, n, sgn) => pushStrNamedAs' false env x n sgn
       | DConstraint _ => env
       | DExport _ => env

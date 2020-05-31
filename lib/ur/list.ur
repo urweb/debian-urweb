@@ -31,6 +31,16 @@ fun foldl [a] [b] (f : a -> b -> b) =
         foldl'
     end
 
+fun foldli [a] [b] (f : int -> a -> b -> b) =
+    let
+        fun foldli' i acc ls =
+            case ls of
+                [] => acc
+              | x :: ls => foldli' (i + 1) (f i x acc) ls
+    in
+        foldli' 0
+    end
+
 val rev = fn [a] =>
              let
                  fun rev' acc (ls : list a) =
@@ -101,6 +111,16 @@ fun mp [a] [b] f =
         mp' []
     end
 
+fun mapConcat [a] [b] f =
+    let
+        fun mapConcat' acc ls =
+            case ls of
+                [] => rev acc
+              | x :: ls => mapConcat' (revAppend (f x) acc) ls
+    in
+        mapConcat' []
+    end
+
 fun mapi [a] [b] f =
     let
         fun mp' n acc ls =
@@ -151,6 +171,26 @@ fun mapM [m ::: (Type -> Type)] (_ : monad m) [a] [b] f =
               | x :: ls => x' <- f x; mapM' (x' :: acc) ls
     in
         mapM' []
+    end
+
+fun mapConcatM [m] (_ : monad m) [a] [b] f =
+    let
+        fun mapConcatM' acc ls =
+            case ls of
+                [] => return (rev acc)
+              | x :: ls' => ls <- f x; mapConcatM' (revAppend ls acc) ls'
+    in
+        mapConcatM' []
+    end
+
+fun mapMi [m ::: (Type -> Type)] (_ : monad m) [a] [b] f =
+    let
+        fun mapM' i acc ls =
+            case ls of
+                [] => return (rev acc)
+              | x :: ls => x' <- f i x; mapM' (i + 1) (x' :: acc) ls
+    in
+        mapM' 0 []
     end
 
 fun mapPartialM [m ::: (Type -> Type)] (_ : monad m) [a] [b] f =
@@ -204,6 +244,21 @@ fun exists [a] f =
         ex
     end
 
+fun existsM [m] (_ : monad m) [a] f =
+    let
+        fun ex ls =
+            case ls of
+                [] => return False
+              | x :: ls =>
+                b <- f x;
+                if b then
+                    return True
+                else
+                    ex ls
+    in
+        ex
+    end
+
 fun foldlMap [a] [b] [c] f =
     let
         fun fold ls' st ls =
@@ -240,6 +295,21 @@ fun find [a] f =
         find'
     end
 
+fun findM [m] (_ : monad m) [a] f =
+    let
+        fun find' ls =
+            case ls of
+                [] => return None
+              | x :: ls =>
+                b <- f x;
+                if b then
+                    return (Some x)
+                else
+                    find' ls
+    in
+        find'
+    end
+
 fun search [a] [b] f =
     let
         fun search' ls =
@@ -249,6 +319,20 @@ fun search [a] [b] f =
                 case f x of
                     None => search' ls
                   | v => v
+    in
+        search'
+    end
+
+fun searchM [m] (_ : monad m) [a] [b] f =
+    let
+        fun search' ls =
+            case ls of
+                [] => return None
+              | x :: ls =>
+                o <- f x;
+                case o of
+                    None => search' ls
+                  | v => return v
     in
         search'
     end
@@ -289,12 +373,27 @@ fun filterM [m] (_ : monad m) [a] (p : a -> m bool) =
         filterM' []
     end
 
-fun all [m] f =
+fun all [a] f =
     let
         fun all' ls =
             case ls of
                 [] => True
               | x :: ls => f x && all' ls
+    in
+        all'
+    end
+
+fun allM [m] (_ : monad m) [a] f =
+    let
+        fun all' ls =
+            case ls of
+                [] => return True
+              | x :: ls =>
+                b <- f x;
+                if b then
+                    all' ls
+                else
+                    return False
     in
         all'
     end
@@ -423,6 +522,22 @@ fun assocAdd [a] [b] (_ : eq a) (x : a) (y : b) (ls : t (a * b)) =
     case assoc x ls of
         None => (x, y) :: ls
       | Some _ => ls
+
+fun assocAddSorted [a] [b] (_ : eq a) (_ : ord a) (x : a) (y : b) (ls : t (a * b)) =
+    let
+        fun aas (ls : t (a * b)) (acc : t (a * b)) =
+            case ls of
+                [] => rev ((x, y) :: acc)
+              | (x', y') :: ls' =>
+                if x' = x then
+                    revAppend ((x, y) :: acc) ls'
+                else if x < x' then
+                    revAppend ((x, y) :: acc) ls
+                else
+                    aas ls' ((x', y') :: acc)
+    in
+        aas ls []
+    end
 
 fun recToList [a ::: Type] [r ::: {Unit}] (fl : folder r)
   = @foldUR [a] [fn _ => list a] (fn [nm ::_] [rest ::_] [[nm] ~ rest] x xs =>
