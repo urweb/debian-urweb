@@ -1,0 +1,9 @@
+liburweb_cgi.so.1 liburweb-cgi1 #MINVER#
+* Build-Depends-Package: urweb
+ main@Base 20200209
+ uw_copy_client_data@Base 20200209
+ uw_do_expunge@Base 20200209
+ uw_free_client_data@Base 20200209
+ uw_init_client_data@Base 20200209
+ uw_post_expunge@Base 20200209
+ uw_supports_direct_status@Base 20200209
